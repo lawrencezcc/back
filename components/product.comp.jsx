@@ -8,8 +8,8 @@ class GetPrice extends React.Component{
     constructor(props){
         super(props);
         this.state = {
-            currentPrice: {},
-            cart: []
+            currentPrice: {}
+            //cart: []
         }
     }
 
@@ -22,31 +22,37 @@ class GetPrice extends React.Component{
                 'Content-Type': 'application/json'
             }
         };
-        axios.get('http://localhost/api/api/get/price/'+selectedProduct.document+'/'+selectedProduct.language,config)
+        let language = ''
+        if(selectedProduct.sourceLanguage === 'English'){
+            language = selectedProduct.targetLanguage;
+        }else{
+            language = selectedProduct.sourceLanguage;
+        }/*
+         just 1 language is enough to get the data except English
+         */
+
+        axios.get('http://localhost:5000/getPrice?document='+selectedProduct.document+'&language='+language,config)
             .then(function(response){
                 _self.setState({
                     currentPrice: response.data
                 });
             });
-
+        console.log(this.state.currentPrice);
     }
-    componentWillUnmount(){
-        console.log('component product is unmounted.....');
 
-    }
 
 
     render() {
-            //console.log(localStorage);
-                return(
 
-                    <div className="jumbotron text-center">
-                        <h1>Product</h1>
-                        <PriceList priceData={this.state.currentPrice}/>
-                    </div>
-                    )
+        return(
 
-            }
+            <div className="jumbotron text-center">
+                <h1>Product</h1>
+                <PriceList priceData={this.state.currentPrice}/>
+            </div>
+        )
+
+    }
 }
 
 export default GetPrice;

@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "watch": "webpack -d",
-    "build": "webpack"
+    "build": "webpack",
+    "start": "webpack-dev-server --hot --colors build"
   },
   "repository": {
     "type": "git",
@@ -22,19 +23,25 @@
     "babel-preset-es2015": "^6.18.0",
     "babel-preset-react": "^6.16.0",
     "webpack": "^1.13.3",
-    "style-loader": "^0.13.1"
+    "style-loader": "^0.13.1",
+    "formsy-react": "^0.19.0",
+    "formsy-react-components": "^0.9.0"
   },
   "dependencies": {
     "axios": "^0.15.2",
     "bootstrap": "^3.3.7",
+    "braintree-web": "^3.6.3",
     "css-loader": "^0.25.0",
+    "formsy-react": "^0.19.0",
     "jquery": "^3.1.1",
+    "moment-business-days": "^0.0.10",
     "react": "^15.3.2",
     "react-bootstrap": "^0.30.6",
     "react-dom": "^15.3.2",
     "react-router": "^3.0.0",
-    "react-storage": "^0.1.0"
+    "react-storage": "^0.1.0",
+    "react-stripe-checkout": "^2.2.5"
   },
-  "author": "Rick",
+  "author": "Rick, Kevin",
   "license": "MIT"
 }

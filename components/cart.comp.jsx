@@ -2,9 +2,10 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { hashHistory } from 'react-router';
 import { Panel,Button,ListGroup,ListGroupItem,Badge ,Modal,Table,InputGroup} from 'react-bootstrap';
-
+import Stripe from './stripe';
 
 class Cart extends React.Component{
+
     constructor(props){
         super(props);
         this.state = {
@@ -48,17 +49,7 @@ class Cart extends React.Component{
         // }
         hashHistory.push('/upload');
     }
-    printOrder(cart){
-        let total = parseInt(cart.totalPrice);
-        let itemNum = cart.items.length;
-        let items = cart.items;
-        items.map((item,index) => {
-            console.log('your order:'+itemNum+' services this is '+(parseInt(index)+1)+' document' +
-                ', document name is:'+item.doc+' translate '+item.dir+' '+ item.lang+' the ' +
-                'qty of hard copy is:'+item.extraCop);
-        });
-        console.log('total price is '+total);
-    }
+
     remove(item){
         let newState = this.state.cart;
         const deletedItemPrice = item.subTotal;
@@ -124,27 +115,30 @@ class Cart extends React.Component{
         this.setState({
             cart: nextProps.cartData,
         });
-
     }
+
     render(){
+
         const cartItemRow = this.state.cart.items.map((item) => {
             return (
                 <tr key={item.id} id={item.id}>
                     <td>{item.id}</td>
                     <td>{item.doc}</td>
-                    <td>{item.dir}</td>
-                    <td>{item.lang}</td>
+                    <td>{item.sourceLanguage}</td>
+                    <td>{item.targetLanguage}</td>
+                    <td>{item.speed}</td>
                     <td>
-                    <InputGroup bsSize="small">
-                        <InputGroup.Button>
-                            <Button bsStyle="info"  onClick={this.edit.bind(this,item)} id={'item-'+item.id+':add'}>+</Button>
-                        </InputGroup.Button>
-                        <input className="form-control"  readOnly type="text" ref={'item-'+item.id+':qty'} defaultValue={item.extraCop}/>
-                        <InputGroup.Button>
-                            <Button bsStyle="info"  onClick={this.edit.bind(this,item)} id={'item-'+item.id+':subs'}>-</Button>
-                        </InputGroup.Button>
-                    </InputGroup>
+                        <InputGroup bsSize="small">
+                            <InputGroup.Button>
+                                <Button bsStyle="info"  onClick={this.edit.bind(this,item)} id={'item-'+item.id+':add'}>+</Button>
+                            </InputGroup.Button>
+                            <input className="form-control"  readOnly type="text" ref={'item-'+item.id+':qty'} defaultValue={item.extraCop}/>
+                            <InputGroup.Button>
+                                <Button bsStyle="info"  onClick={this.edit.bind(this,item)} id={'item-'+item.id+':subs'}>-</Button>
+                            </InputGroup.Button>
+                        </InputGroup>
                     </td>
+
                     <td>${item.subTotal}</td>
                     <td><Button bsStyle="danger" onClick={this.remove.bind(this,item)} id={'btn-'+item.id}>remove</Button></td>
                 </tr>
@@ -152,12 +146,15 @@ class Cart extends React.Component{
         });
         return(
 
-            <div >
+            <div  >
                 <Panel style={this.props.panelStyle.tab} header="Shopping Cart" bsStyle="info" >
-                        <ListGroup fill>
-                            <ListGroupItem><Button bsStyle="success" onClick={this.show} >ViewCart <Badge>{this.state.cart.items.length}</Badge></Button></ListGroupItem>
-                            <ListGroupItem><Button onClick={this.handleCheckout} >CheckOut</Button></ListGroupItem>
-                        </ListGroup>
+                    <ListGroup fill>
+                        <ListGroupItem><Button bsStyle="success" onClick={this.show} >ViewCart <Badge>{this.state.cart.items.length}</Badge></Button></ListGroupItem>
+                        <ListGroupItem>
+                            <Button onClick={this.handleCheckout} >CheckOut</Button>
+                        </ListGroupItem>
+                    <ListGroupItem><div id="paypalcheckout"></div></ListGroupItem>
+                    </ListGroup>
                 </Panel>
 
                 <Modal show={this.state.showCart} bsSize="large" onHide={this.hideCart}>
@@ -170,8 +167,9 @@ class Cart extends React.Component{
                             <tr>
                                 <th>Id</th>
                                 <th>Document</th>
-                                <th>Direction</th>
-                                <th>Language</th>
+                                <th>Translate From</th>
+                                <th>Translate Into</th>
+                                <th>Speed</th>
                                 <th>Extra Copy</th>
                                 <th>Sub-Total</th>
                                 <th>Action</th>
@@ -188,7 +186,8 @@ class Cart extends React.Component{
 
                     </Modal.Body>
                     <Modal.Footer>
-                        <Button bsStyle="success" onClick={this.hideCart}>Close</Button>
+                        <Stripe/>
+                        <Button bsStyle="success" onClick={this.handleCheckout}>CheckOut</Button>
                         <Button bsStyle="success"  onClick={this.addMoreDoc}>Continue Shopping</Button>
                     </Modal.Footer>
                 </Modal>
