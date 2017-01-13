@@ -13,12 +13,15 @@ class Cart extends React.Component{
                 items: props.cartData.items,
                 totalPrice: props.cartData.totalPrice
             },
-            showCart: false
+            showCart: false,
+            backdrop: true,
+            keyboard: true,
         };
         this.show = this.show.bind(this);
         this.hideCart  = this.hideCart.bind(this);
         this.addMoreDoc = this.addMoreDoc.bind(this);
         this.handleCheckout = this.handleCheckout.bind(this);
+        this.disablemodal = this.disablemodal.bind(this);
 
     }
 
@@ -36,10 +39,18 @@ class Cart extends React.Component{
         this.setState({
             showCart:false
         })
+    }
 
+    disablemodal(){
+        console.log('locked');
+        this.setState({
+            backdrop:'static',
+            keyboard:false
+        })
     }
 
     handleCheckout(){
+
         // if(confirm('This button is currently in test and all data will be erased and back to Homepage, do you' +
         //         'want to continue?')){
         //     let cart = JSON.parse(localStorage.cart);
@@ -85,6 +96,7 @@ class Cart extends React.Component{
             }
         });
     }
+
     edit(item,event){
         const args = event.target.id.split(':');
         const elementId = args[0];
@@ -130,11 +142,11 @@ class Cart extends React.Component{
                     <td>
                         <InputGroup bsSize="small">
                             <InputGroup.Button>
-                                <Button bsStyle="info"  onClick={this.edit.bind(this,item)} id={'item-'+item.id+':add'}>+</Button>
+                                <Button bsStyle="info"  onClick={this.edit.bind(this,item)} id={'item-'+item.id+':subs'}>-</Button>
                             </InputGroup.Button>
                             <input className="form-control"  readOnly type="text" ref={'item-'+item.id+':qty'} defaultValue={item.extraCop}/>
                             <InputGroup.Button>
-                                <Button bsStyle="info"  onClick={this.edit.bind(this,item)} id={'item-'+item.id+':subs'}>-</Button>
+                                <Button bsStyle="info"  onClick={this.edit.bind(this,item)} id={'item-'+item.id+':add'}>+</Button>
                             </InputGroup.Button>
                         </InputGroup>
                     </td>
@@ -145,19 +157,17 @@ class Cart extends React.Component{
             )
         });
         return(
-
             <div  >
                 <Panel style={this.props.panelStyle.tab} header="Shopping Cart" bsStyle="info" >
                     <ListGroup fill>
                         <ListGroupItem><Button bsStyle="success" onClick={this.show} >ViewCart <Badge>{this.state.cart.items.length}</Badge></Button></ListGroupItem>
                         <ListGroupItem>
-                            <Button onClick={this.handleCheckout} >CheckOut</Button>
+                            <Stripe cartData={this.state.cart} lock={this.disablemodal}/>
                         </ListGroupItem>
-                    <ListGroupItem><div id="paypalcheckout"></div></ListGroupItem>
                     </ListGroup>
                 </Panel>
 
-                <Modal show={this.state.showCart} bsSize="large" onHide={this.hideCart}>
+                <Modal show={this.state.showCart} bsSize="large" onHide={this.hideCart} data-backdrop={this.state.backdrop} data-keyboard={this.state.keyboard}>
                     <Modal.Header closeButton>
                         <Modal.Title>Your Orders</Modal.Title>
                     </Modal.Header>
@@ -186,8 +196,7 @@ class Cart extends React.Component{
 
                     </Modal.Body>
                     <Modal.Footer>
-                        <Stripe/>
-                        <Button bsStyle="success" onClick={this.handleCheckout}>CheckOut</Button>
+                        <Stripe cartData={this.state.cart} lock={this.disablemodal}/>
                         <Button bsStyle="success"  onClick={this.addMoreDoc}>Continue Shopping</Button>
                     </Modal.Footer>
                 </Modal>

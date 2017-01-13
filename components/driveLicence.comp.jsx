@@ -45,7 +45,7 @@ class DLComponent extends React.Component{
         this.state.stateUse = s;
         let selectedState = this.state.stateUse;
         let selectedReason = this.state.reasons;
-        if(selectedState === 'nsw' && selectedReason === 'Apply for an Australian licence'){
+        if(selectedState === 'NSW' && selectedReason === 'Apply for an Australian licence'){
             this.setState({alert: true,buttonDisable:true});
         }else{
             this.setState({alert:false,buttonDisable:false});
@@ -62,6 +62,9 @@ class DLComponent extends React.Component{
         this.state.reasons = r;
         let selectedState = this.state.stateUse;
         let selectedReason = this.state.reasons;
+        console.log(selectedReason);
+
+        console.log(selectedState);
         if (selectedReason === 'Apply for an Australian licence'){
             this.setState({stateDisplay: true})
         }else{
@@ -73,7 +76,7 @@ class DLComponent extends React.Component{
             this.setState({otherDisplay: false})
         }
 
-        if(selectedState === 'nsw' && selectedReason === 'Apply for an Australian licence'){
+        if(selectedState === 'NSW' && selectedReason === 'Apply for an Australian licence'){
             this.setState({alert: true,buttonDisable:true});
         }else{
             this.setState({alert:false,buttonDisable:false});
