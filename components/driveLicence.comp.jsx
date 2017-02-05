@@ -1,6 +1,6 @@
 import React from 'react';
 import { Jumbotron,Button } from 'react-bootstrap';
-import MyAlert from './alert.comp';
+import MyAlert from './alerts/alert.comp';
 import { hashHistory } from 'react-router';
 
 
@@ -111,23 +111,17 @@ class DLComponent extends React.Component{
 
         localStorage.selectedDocs = JSON.stringify(selectedProduct);
 
-        let path ='/services/Driver\'s Licence';
+        let path ='/services/quality';
         hashHistory.push(path);
     }
 
 
     render() {
-        let styleObj = {
-            h3:{
-                color:'white'
-            }
-        };
-
         return(
             <div >
                 <Jumbotron>
                     <div className="row col-md-6 col-md-offset-3 " >
-                        <h3 style={styleObj.h3}>Why do you need your licence translated</h3>
+                        <h3>Why do you need your licence translated</h3>
                         <select name="state" id="state" onChange={this.handleReasonChange} className="form-control" defaultValue="selected">
                             <option value="selected">Choose a reason</option>
                             <option value="Apply for an Australian licence">I want to get Australian's Licence</option>
@@ -142,7 +136,7 @@ class DLComponent extends React.Component{
                         <br/>
                     </div>
                     <div className={this.state.stateDisplay ? "row col-md-6 col-md-offset-3 " : "hidden"}>
-                        <h3 style={styleObj.h3}>Which state you are going to use this licence</h3>
+                        <h3>Which state you are going to use this licence</h3>
                         <select name="state" id="state" onChange={this.handleStateChange} defaultValue="selected" className="form-control">
                             <option value="selected">Select s State</option>
                             <option value="NSW">NSW</option>

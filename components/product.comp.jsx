@@ -1,19 +1,19 @@
 import React from 'react';
 import axios from 'axios';
 import PriceList from './priceList.comp';
+import Loading from 'react-loading';
+import * as consts from '../constants.js';
 
-class GetPrice extends React.Component{
+class GetPrice extends React.Component {
 
-
-    constructor(props){
+    constructor(props) {
         super(props);
         this.state = {
-            currentPrice: {}
-            //cart: []
+            currentPrice: null
         }
     }
 
-    componentDidMount() {
+    componentWillMount() {
         let selectedProduct = JSON.parse(localStorage.selectedDocs);
         let _self = this;
         let config = {
@@ -23,16 +23,18 @@ class GetPrice extends React.Component{
             }
         };
         let language = ''
-        if(selectedProduct.sourceLanguage === 'English'){
+        if (selectedProduct.sourceLanguage === 'English') {
             language = selectedProduct.targetLanguage;
-        }else{
+        } else {
             language = selectedProduct.sourceLanguage;
-        }/*
+        }
+        /*
          just 1 language is enough to get the data except English
          */
 
-        axios.get('http://localhost:5000/getPrice?document='+selectedProduct.document+'&language='+language,config)
-            .then(function(response){
+
+        axios.get(consts.API_URL + '/getPrice?document=' + selectedProduct.document + '&language=' + language, config)
+            .then(function (response) {
                 _self.setState({
                     currentPrice: response.data
                 });
@@ -41,13 +43,19 @@ class GetPrice extends React.Component{
     }
 
 
-
     render() {
+        if (!this.state.currentPrice) {
+            return (
+                <div className="loading">
+                    <Loading type='spin' color='#e3e3e3' height={150} width={150}/>
+                </div>
+            );
+        }
 
-        return(
+        return (
 
             <div className="jumbotron text-center">
-                <h1>Product</h1>
+                <h1>Choose your option</h1>
                 <PriceList priceData={this.state.currentPrice}/>
             </div>
         )

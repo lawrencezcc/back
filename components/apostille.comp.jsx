@@ -1,6 +1,6 @@
 import React from 'react';
 import {Jumbotron, Button} from 'react-bootstrap';
-import MyAlert from './alert.comp';
+import MyAlert from './alerts/alert.comp';
 import {hashHistory} from 'react-router';
 
 
@@ -38,33 +38,24 @@ class APComponent extends React.Component {
             path = '/services/Driver\'s Licence Check';
 
         }else{
-            path = '/services/'+selectedProduct.document;
+            path = '/services/quality';
         }
         hashHistory.push(path);
     }
 
 
     render() {
-        let styleObj = {
-            h3: {
-                color: 'white'
-            },
-            label:{
-                color: 'white'
-            }
-        };
-
         return (
             <div >
                 <Jumbotron>
                     <div className="row col-md-6 col-md-offset-3 ">
-                        <h3 style={styleObj.h3}>Do you need to submit your English document and the translation we provide to DFAT for legalisation?</h3>
+                        <h3>Do you need to submit your English document and the translation we provide to DFAT for legalisation?</h3>
                         <div className="row col-md-6 col-md-offset-3">
-                            <label style={styleObj.label}><input type="radio" name="apo" value="Yes"
+                            <label><input type="radio" name="apo" value="Yes"
                                                                  onChange={this.handleChange}/>Yes&nbsp;&nbsp;</label>
-                            <label style={styleObj.label}><input type="radio" name="apo" value="No"
+                            <label><input type="radio" name="apo" value="No"
                                                                  onChange={this.handleChange}/>No&nbsp;&nbsp;</label>
-                            <label style={styleObj.label}><input type="radio" name="apo" value="Not sure"
+                            <label><input type="radio" name="apo" value="Not sure"
                                                                  onChange={this.handleChange}/>Not sure</label>
                         </div>
                     </div>

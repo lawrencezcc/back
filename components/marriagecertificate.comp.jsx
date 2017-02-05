@@ -1,6 +1,5 @@
 import React from 'react';
 import {Jumbotron, Button} from 'react-bootstrap';
-import MyAlert from './alert.comp';
 import {hashHistory} from 'react-router';
 
 
@@ -32,32 +31,23 @@ class MCComponent extends React.Component {
         let selectedProduct = JSON.parse(localStorage.selectedDocs);
         selectedProduct.comment = selectedProduct.comment === '' ? 'Affidavit Required?: ' + this.state.selection : selectedProduct.comment + 'Affidavit Required?: ' + this.state.selection
         localStorage.selectedDocs = JSON.stringify(selectedProduct);
-        let path = '/services/Marriage Certificate';
+        let path = '/services/quality';
         hashHistory.push(path);
     }
 
 
     render() {
-        let styleObj = {
-            h3: {
-                color: 'white'
-            },
-            label:{
-                color: 'white'
-            }
-
-        };
 
         return (
             <div >
                 <Jumbotron>
                     <div className="row col-md-6 col-md-offset-3 ">
-                        <h3 style={styleObj.h3}>Do you need your marriage certificate translated into English for an
+                        <h3>Do you need your marriage certificate translated into English for an
                             application for divorce?</h3>
                         <div className="row col-md-6 col-md-offset-3">
-                            <label style={styleObj.label}><input type="radio" name="divorce" value="Yes"
+                            <label><input type="radio" name="divorce" value="Yes"
                                                               onChange={this.handleChange}/>Yes&nbsp;&nbsp;</label>
-                            <label style={styleObj.label}><input type="radio" name="divorce" value="No"
+                            <label><input type="radio" name="divorce" value="No"
                                                               onChange={this.handleChange}/>No</label>
                         </div>
                     </div>

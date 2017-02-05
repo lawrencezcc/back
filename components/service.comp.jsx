@@ -1,14 +1,19 @@
 import React from 'react';
 import axios from 'axios';
-import {   hashHistory } from 'react-router';
+import {Glyphicon} from 'react-bootstrap';
+import {hashHistory } from 'react-router';
+import Loading from 'react-loading';
+import * as consts from '../constants';
+
 class ServiceComponent extends React.Component{
     constructor(){
         super();
         this.state = {
-            documents: [],
-            languages: [],
+            documents: null,
+            languages: null,
             selectedVal: {
                 comment: '',
+                quantity:1,
                 document: 'selected',
                 sourceLanguage: 'selected',
                 targetLanguage: 'selected'
@@ -21,7 +26,7 @@ class ServiceComponent extends React.Component{
         this.handleChange = this.handleChange.bind(this);
     };
 
-    componentDidMount(){
+    componentWillMount(){
         let _self = this;
         let config = {
             headers: {
@@ -30,8 +35,8 @@ class ServiceComponent extends React.Component{
             }
         };
         axios.all([
-            axios.get('http://localhost:5000/allDocs',config),
-            axios.get('http://localhost:5000/allLanguages',config)
+            axios.get(consts.API_URL + '/allDocs',config),
+            axios.get(consts.API_URL + '/allLanguages',config)
         ]).then(axios.spread(function(docResponse,lanResponse){
             _self.setState({
                 documents: docResponse.data,
@@ -119,7 +124,7 @@ class ServiceComponent extends React.Component{
         let selected = this.state.selectedVal;
         console.log(this.state.selectedVal);
         if (selected.sourceLanguage === 'English'){
-            path = '/services/Apostille';
+            path = '/services/Apostille Check';
         }else if(selected.document === 'Driver\'s Licence')
         {
             path = '/services/Driver\'s Licence Check';
@@ -128,7 +133,7 @@ class ServiceComponent extends React.Component{
             path = '/services/Marriage Certificate Check';
         }
         else{
-            path = '/services/'+selected.document;
+            path = '/services/quality';
         }
 
         if(selected.doc === 'selected' || selected.sourceLanguage === 'selected' || selected.targetLanguage === 'selected' ){
@@ -168,8 +173,8 @@ class ServiceComponent extends React.Component{
         if(document === 'Family Register' ) {
             return (
                 <div className="form-group">
-                    <select name="source-language" id="source-language" className="form-control" onChange={this.handleChange} defaultValue={this.state.selectedVal.sourceLanguage} >
-                        <option value="selected">Source Language </option>
+                    <select name="source-language" id="source-language" className="form-control input-lg  select" onChange={this.handleChange} defaultValue={this.state.selectedVal.sourceLanguage} >
+                        <option value="selected">Language </option>
                         <option value="Japanese">Japanese</option>
                         <option value="English">English</option>
                     </select>
@@ -178,8 +183,8 @@ class ServiceComponent extends React.Component{
         }else{
             return(
                 <div className="form-group">
-                    <select name="source-language" id="source-language" className="form-control" onChange={this.handleChange} defaultValue={this.state.srcEnglishOnly?"English":this.state.selectedVal.sourceLanguage} >
-                        <option value="selected">Source Language </option>
+                    <select name="source-language" id="source-language" className="form-control input-lg  select" onChange={this.handleChange} defaultValue={this.state.srcEnglishOnly?"English":this.state.selectedVal.sourceLanguage} >
+                        <option value="selected">Language </option>
                         {(this.state.srcEnglishOnly)?<option value="English" selected="selected">English</option>:this.lanOption()}
                     </select>
                 </div>
@@ -191,8 +196,8 @@ class ServiceComponent extends React.Component{
         if(document === 'Family Register' ) {
             return (
                 <div className="form-group">
-                    <select name="target-language" id="target-language" className="form-control" onChange={this.handleChange} defaultValue={this.state.selectedVal.targetLanguage} >
-                        <option value="selected">Target Language </option>
+                    <select name="target-language" id="target-language" className="form-control input-lg select" onChange={this.handleChange} defaultValue={this.state.selectedVal.targetLanguage} >
+                        <option value="selected">Language </option>
                         <option value="Japanese">Japanese</option>
                         <option value="English">English</option>
                     </select>
@@ -201,8 +206,8 @@ class ServiceComponent extends React.Component{
         }else{
             return(
                 <div className="form-group">
-                    <select name="target-language" id="target-language" className="form-control" onChange={this.handleChange} defaultValue={this.state.tarEnglishOnly?"English":this.state.selectedVal.targetLanguage} >
-                        <option value="selected">Target Language </option>
+                    <select name="target-language" id="target-language" className="form-control input-lg select" onChange={this.handleChange} defaultValue={this.state.tarEnglishOnly?"English":this.state.selectedVal.targetLanguage} >
+                        <option value="selected">Language </option>
                         {(this.state.tarEnglishOnly)?<option value="English" selected="selected">English</option>:this.lanOption()}
                     </select>
                 </div>
@@ -211,50 +216,42 @@ class ServiceComponent extends React.Component{
 
     }
     render(){
+        if (!this.state.languages){
+            return (
+                <div className="loading">
+                    <Loading type='spin' color='#e3e3e3' height={150} width={150}/>
+                </div>
+            );
+        }
         return(
             <div>
-                <div className=" jumbotron text-center">
-                    <h1>Choose Your Service</h1>
-                    <div className="form-group" style={{color:'white'}}>
+                <div className="jumbotron row">
+                    <h1>Order your NATTI Certified Translation Online!</h1>
+                    <div className="form-group divborder col-sm-8 ">
                         <div className="form-inline form-group" >
-                            I want to translate a
-                            <select name="document" id="document" className="form-control" onChange={this.handleChange} defaultValue={this.state.selectedVal.document} >
-                                <option value="selected">Select a Document</option>
+                            <select name="document" id="document" className="form-control input-lg" onChange={this.handleChange} defaultValue={this.state.selectedVal.document}>
+                                <option value="selected">What document would you like us to translate?</option>
                                 {this.docOption()}
                             </select>
                         </div>
-                        <div className="form-inline form-group"><br/>
-                            from
+                        <div className="form-inline form-group">
+                            <label>from</label>
                             {this.srcLanguageSelect(this.state.selectedVal.document)}
                         </div>
-                        <div className="form-inline form-group"><br/>
-                            into
+                        <div className="form-inline form-group">
+                            <label>into</label>
                             {this.tarLanguageSelect(this.state.selectedVal.document)}
                         </div>
-                        {/*<div className="form-group">*/}
-                        {/*<select name="source-language" id="source-language" className="form-control" onChange={this.handleChange} defaultValue="selected" >*/}
-                        {/*<option value="selected">Source Language </option>*/}
-                        {/*{(this.state.srcEnglishOnly)?<option value="English">English</option>:this.lanOption(this.state.selectedVal.document)}*/}
-                        {/*</select>*/}
-                        {/*</div>*/}
-                        {/*<div className="form-group">*/}
-                        {/*<select name="target-language" id="target-language" className="form-control" onChange={this.handleChange} defaultValue="selected">*/}
-                        {/*<option value="selected">Target Language</option>*/}
-                        {/*{(this.state.tarEnglishOnly)?<option value="English">English</option>:this.lanOption(this.state.selectedVal.document)}*/}
-                        {/*</select>*/}
-                        {/*</div>*/}
-
-                            <button className="btn btn-primary form-control"  onClick={this.handleRedir}>Quote Now</button>
-
+                        <div>
+                            <button className="btn btn-warning form-control"  onClick={this.handleRedir}>Quote Now</button>
+                        </div>
+                        <div><p><Glyphicon glyph="question-sign" />Need to translate multiple documents?</p></div>
                     </div>
                 </div>
-
                 <div >
                     {this.props.children}
                 </div>
             </div>
-
-
         )
     }
 }

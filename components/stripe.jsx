@@ -1,7 +1,9 @@
 import React from 'react'
 import StripeCheckout from 'react-stripe-checkout';
 import axios from 'axios';
-import PaySuccess from './paymentsuccess.comp';
+import PaySuccess from './alerts/paymentsuccessAlert';
+import Loading from 'react-loading';
+import * as consts from '../constants';
 
 export default class Stripe extends React.Component {
 
@@ -13,21 +15,24 @@ export default class Stripe extends React.Component {
                 totalPrice: props.cartData.totalPrice
             },
             show:false,
+            loading:false
         };
         this.onToken=this.onToken.bind(this);
     }
 
     onToken(token) {
-        this.props.lock();
+        this.setState({
+            loading:true
+        })
         let upData = new FormData();
         upData.append("amount",this.state.cart.totalPrice*100);
         upData.append("email",token.email);
         upData.append("token",token.id);
-        axios.post('http://localhost:5000/charge',upData)
+        axios.post(consts.API_URL + '/charge',upData)
             .then(response => {
                 if (response.status===200){
                     localStorage.order = JSON.stringify(response.data.Ordernumber);
-                    this.setState({show:true});
+                    this.setState({show:true,loading:false});
                 }
                 console.log(response);
             })
@@ -54,6 +59,9 @@ export default class Stripe extends React.Component {
                 </StripeCheckout>
                 <div>
                     {this.state.show? <PaySuccess show={true}/> : null}
+                </div>
+                <div className="loading">
+                    {this.state.loading? <Loading type='spin' color='#e3e3e3' height={150} width={150}/> : null}
                 </div>
             </div>
 

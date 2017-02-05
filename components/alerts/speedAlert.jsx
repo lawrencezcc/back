@@ -2,8 +2,9 @@ import SweetAlert from 'sweetalert-react';
 import React from 'react';
 import {hashHistory} from 'react-router';
 import 'sweetalert/dist/sweetalert.css';
+import PubSub from 'pubsub-js';
 
-class PaySuccess extends React.Component {
+class SpeedAlert extends React.Component {
 
     constructor(props) {
         super(props);
@@ -17,21 +18,24 @@ class PaySuccess extends React.Component {
             <div>
                 <SweetAlert
                     show={this.state.show}
-                    title="Thank You"
-                    text="Your receipt has sent.Please upload your documents"
-                    type="success"
+                    title="BACK"
+                    text="DO NOT SELECT DIFFERENT SPEED" //todo change words
+                    type="warning"
                     onConfirm={() => {
-                        console.log('confirm');
                         this.setState({show: false});
-                        hashHistory.push('/upload');
+                        this.props.close();
                     }}
                     onEscapeKey={() => {
+
                         this.setState({show: false});
-                        hashHistory.push('/upload');
+                        this.props.close();
+
                     }}
                     onOutsideClick={() => {
+
                         this.setState({show: false});
-                        hashHistory.push('/upload');
+                        this.props.close();
+
                     }}
                 />
             </div>
@@ -39,4 +43,4 @@ class PaySuccess extends React.Component {
     }
 }
 
-export default PaySuccess;
+export default SpeedAlert;

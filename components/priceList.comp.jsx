@@ -1,300 +1,269 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
-import {Panel,Button,ListGroup,ListGroupItem,InputGroup} from 'react-bootstrap';
-import Cart from './cart.comp';
+import {Panel, Button, ListGroup, ListGroupItem, Glyphicon} from 'react-bootstrap';
+import HardcopyAlert from './alerts/extraCopyAlert';
+import SpeedAlert from './alerts/speedAlert';
 import moment from 'moment-business-days';
+import PubSub from 'pubsub-js';
 
-
-class PriceList extends React.Component{
-    constructor(){
-        super();
-        if(localStorage.cart){
+class PriceList extends React.Component {
+    constructor(props) {
+        super(props);
+        if (localStorage.cart) {
             this.state = {
                 buttonDisable: false,
                 currentCart: {
                     items: JSON.parse(localStorage.cart).items,
                     totalPrice: parseInt(JSON.parse(localStorage.cart).totalPrice)
-                }
+                },
+                selectedDoc: JSON.parse(localStorage.selectedDocs),
+                showalert: false,
+                speedalert: false,
+                nextday: moment().local().hour() >= 17 ? 1 : 0,
+                urgAvailable:(this.props.priceData.urgAvail==true)
             }
-        }else{
+        } else {
             this.state = {
                 buttonDisable: false,
                 currentCart: {
                     items: [],
                     totalPrice: 0
-                }
+                },
+                selectedDoc: JSON.parse(localStorage.selectedDocs),
+                showalert: false,
+                speedalert: false,
+                nextday: moment().local().hour() >= 17 ? 1 : 0,
+                urgAvailable: (this.props.priceData.urgAvail==true)
             }
         }
 
         this.handleAddToCart = this.handleAddToCart.bind(this);
-        // this.add = this.add.bind(this);
-        // this.substract = this.substract.bind(this); these two functions combined into edit()
-        this.edit = this.edit.bind(this);
+        this.checkSpeed = this.checkSpeed.bind(this);
+        this.closeAlert = this.closeAlert.bind(this);
+        this.renderUrgent = this.renderUrgent.bind(this);
     }
-    addIndex(arr){
+
+    addIndex(arr) {
         let newArr = []
-        arr.map((item,index)=> {
+        arr.map((item, index) => {
             item.id = index;
             return newArr[index] = arr[index];
         })
         return newArr;
     }
-    calculateTotal(items){
+
+    calculateTotal(items) {
         let sum = 0;
         items.map((item) => {
             sum += item.subTotal;
         });
         return sum;
     }
-    handleAddToCart(event){
-        const priceInfo = this.props.priceData;// const priceInfo = localStorage.......
+
+    checkSpeed(speed, cart,event) {
+        for (var i in cart) {
+            console.log(speed);
+            console.log(cart[i].speed);
+            if (cart[i].speed != speed) {
+                event.preventDefault();
+                event.stopPropagation();
+                this.setState({speedalert: true});
+                return false;
+            }
+        }
+        return true;
+    }
+
+    closeAlert(){
+        this.setState({
+            speedalert:false
+        });
+    }
+
+    renderUrgent(){
+        console.log(this.state);
+        console.log(this.state.urgAvailable);
+        console.log(this.props.priceData.urgAvail==true);
+        console.log(this.props.priceData.urgAvail);
+        let StyleObj = {
+            tab: {margin: '2px'},
+        };
+        if (this.props.priceData.urgAvail){
+            let urgDate = moment().businessAdd(1 + this.state.nextday).format("ddd MMM Do");
+            return(
+                <Panel header="Urgent" bsStyle="danger" style={StyleObj.tab}>
+                    <ListGroup fill>
+                        <ListGroupItem><strong>${this.props.priceData.urg * this.state.selectedDoc.quantity}
+                            ({this.props.priceData.urg}Each)</strong></ListGroupItem>
+                        <ListGroupItem>Email Delivery Date<br/>{urgDate} 5pm<br/>(1 Business
+                            day)<br/></ListGroupItem>
+                        <Button onClick={this.handleAddToCart} disabled={this.state.buttonDisable} id="urg"
+                                bsStyle="danger">Order</Button>
+                    </ListGroup>
+                </Panel>
+            )
+        }else{
+            return(
+                <Panel header="Urgent" bsStyle="danger" style={StyleObj.tab}>
+                    <ListGroup fill>
+                        <ListGroupItem><strong>Not Available</strong></ListGroupItem>
+                        <ListGroupItem><br/>Please select other methods<br/><br/></ListGroupItem>
+                        <Button onClick={this.handleAddToCart} disabled={true} id="urg"
+                                bsStyle="danger">Order</Button>
+                    </ListGroup>
+                </Panel>
+            )
+        }
+    }
+
+    handleAddToCart(event) {
+        const priceInfo = this.props.priceData;
         const selectedDoc = JSON.parse(localStorage.selectedDocs);
         let btnId = event.target.id;
-        let copyQty = ReactDOM.findDOMNode(this.refs[btnId]).value;//need to do some validation later
         let existCart = [];
         let totalOfCart = this.state.currentCart.totalPrice;
         let item = {};
         let basicPrice = priceInfo[btnId];
-        if(window.localStorage && localStorage.cart){
+        if (window.localStorage && localStorage.cart) {
             existCart = JSON.parse(localStorage.cart).items;
-        }else{
+        } else {
             existCart = [];
         }
-        switch (btnId){
+        switch (btnId) {
             case 'std':
                 item.speed = "regular";
+                item.date = moment().businessAdd(4 + this.state.nextday).format("ddd MMM Do");
                 break;
             case 'exp':
                 item.speed = 'express';
+                item.date = moment().businessAdd(2 + this.state.nextday).format("ddd MMM Do");
                 break;
             case 'urg':
                 item.speed = 'urgent';
+                item.date = moment().businessAdd(1 + this.state.nextday).format("ddd MMM Do");
                 break;
             default:
                 null;
                 break;
-
-
         }
-        item.doc = selectedDoc.document;
-        item.sourceLanguage = selectedDoc.sourceLanguage;
-        item.targetLanguage = selectedDoc.targetLanguage;
-        item.extraCop = copyQty;
-        item.comment=selectedDoc.comment;
-        item.subTotal = basicPrice + 10 * item.extraCop; //Assume we charge $10 for each extra hard copy.
-        existCart.push(item);
-        existCart = this.addIndex(existCart);
-        totalOfCart = this.calculateTotal(existCart);
-        this.setState({
-            currentCart: {
-                items: existCart,
-                totalPrice: totalOfCart
-            },
-            buttonDisable:true
-        })
-
-        localStorage.cart = JSON.stringify(this.state.currentCart);
-
-        event.stopPropagation();
+        if (this.checkSpeed(item.speed, existCart,event)) {
+            item.doc = selectedDoc.document;
+            item.quantity = selectedDoc.quantity;
+            item.sourceLanguage = selectedDoc.sourceLanguage;
+            item.targetLanguage = selectedDoc.targetLanguage;
+            item.extraCop = 0;
+            item.comment = selectedDoc.comment;
+            item.unitPrice = basicPrice;
+            item.subTotal = basicPrice * item.quantity + 11 * item.extraCop; //Assume we charge $11 for each extra hard copy.
+            existCart.push(item);
+            existCart = this.addIndex(existCart);
+            totalOfCart = this.calculateTotal(existCart);
+            this.setState({
+                currentCart: {
+                    items: existCart,
+                    totalPrice: totalOfCart
+                },
+                buttonDisable: true,
+                showalert: true
+            })
+            localStorage.updateCopyID = JSON.stringify(item.id);
+            localStorage.cart = JSON.stringify(this.state.currentCart);
+            event.stopPropagation();
+        } else {
+            return;
+        }
     }
-    shouldComponentUpdate(nextProps,nextState){
+
+
+    shouldComponentUpdate(nextProps, nextState) {
 
         this.setState({
-            currentCart:nextState.currentCart
+            currentCart: nextState.currentCart
         });
         localStorage.cart = JSON.stringify(nextState.currentCart);
+        PubSub.publish("updateCart", "remove");
         return true;
 
     }
-    componentDidMount(){
+
+    componentDidMount() {
         console.log('mount Price component');
-        if(localStorage.cart){
+        if (localStorage.cart) {
             let storedCart = JSON.parse(localStorage.cart);
-            if(storedCart.items.length){
-                this.setState({currentCart:storedCart});
+            if (storedCart.items.length) {
+                this.setState({currentCart: storedCart});
             }
         }
 
     }
-    componentWillUnmount(){
-        this.state.buttonDisable? false: null;
-    }
-    // add(event){
-    //     event.stopPropagation();
-    //     let btnId = event.target.id;
-    //     let buttonId = '';
-    //     switch (btnId){
-    //         case 'stdAdd':
-    //             buttonId = 'std';
-    //             break;
-    //         case 'expAdd':
-    //             buttonId = 'exp';
-    //             break;
-    //         case 'urgAdd':
-    //             buttonId = 'urg';
-    //             break;
-    //         default:
-    //             null;
-    //             break;
-    //     }
-    //     let inputVal = ReactDOM.findDOMNode(this.refs[buttonId]);
-    //
-    //     let num = parseInt(inputVal.value);
-    //     num +=1;
-    //     inputVal.value = num;//to be optimized;
-    //
-    // }
-    edit(event){
-        event.stopPropagation();
-        let elementId = event.target.id;
-        let args = elementId.split(":");
-        let priceType = args[0];
-        let clickAction = args[1]
-        let extraCopyInput = ReactDOM.findDOMNode(this.refs[priceType]);
-        let hardCopyQty = parseInt(extraCopyInput.value); // because the value is string so need to be parsed
-        if(clickAction === 'add'){
-            hardCopyQty += 1;
-        }else if(clickAction === 'sub'){
-            if(hardCopyQty <= 0){
-                return;
-            }
-            hardCopyQty -= 1;
-        }
-        extraCopyInput.value = hardCopyQty;
 
+    componentWillUnmount() {
+        this.state.buttonDisable ? false : null;
     }
-    // substract(event){
-    //     event.stopPropagation();
-    //     let btnId = event.target.id;
-    //
-    //     let buttonId = '';
-    //     switch (btnId){
-    //         case 'stdSub':
-    //             buttonId = 'std';
-    //             break;
-    //         case 'expSub':
-    //             buttonId = 'exp';
-    //             break;
-    //         case 'urgSub':
-    //             buttonId = 'urg';
-    //             break;
-    //         default:
-    //             null;
-    //             break;
-    //     }
-    //     let inputVal = ReactDOM.findDOMNode(this.refs[buttonId]);
-    //     let num = parseInt(inputVal.value);
-    //     num -=1;
-    //     if(num < 0){
-    //         return;
-    //     }
-    //     inputVal.value = num;//to be optimized;
-    // }
+
     render() {
-        let stdEmailStart=moment().businessAdd(2).format("ddd MMM Do");
-        let stdEmailEnd=moment().businessAdd(3).format("ddd MMM Do");
-        let stdHardStart=moment().businessAdd(7).format("ddd MMM Do");
-        let stdHardEnd=moment().businessAdd(10).format("ddd MMM Do");
-        let expEmailStart=moment().businessAdd(2).format("ddd MMM Do");
-        let expEmailEnd=moment().businessAdd(3).format("ddd MMM Do");
-        let expHardStart=moment().businessAdd(3).format("ddd MMM Do");
-        let expHardEnd=moment().businessAdd(5).format("ddd MMM Do");
-        let urgEmailStart=moment().businessAdd(1).format("ddd MMM Do");
-        let urgHardStart=moment().businessAdd(2).format("ddd MMM Do");
-        let urgHardEnd=moment().businessAdd(3).format("ddd MMM Do");
+        let stdDate = moment().businessAdd(4 + this.state.nextday).format("ddd MMM Do");
+        let expDate = moment().businessAdd(2 + this.state.nextday).format("ddd MMM Do");
         let StyleObj = {
-            tab:{margin: '20px'},
-
+            tab: {margin: '2px'},
         };
-        return(
+
+        return (
+
             <div>
                 <div className="row">
                     <div className="col-md-4">
-                        <Panel header="Standard" bsStyle="success" style={StyleObj.tab}>
+                        <Panel header="Relaxed" bsStyle="success" style={StyleObj.tab}>
                             <ListGroup fill>
-                                <ListGroupItem><strong>${this.props.priceData.std}</strong></ListGroupItem>
-                                <ListGroupItem>Estimate Email copy delivery:<br/>{stdEmailStart}-{stdEmailEnd}</ListGroupItem>
-                                <ListGroupItem>Estimate Hard copy delivery:<br/>{stdHardStart}-{stdHardEnd}</ListGroupItem>
-                                <ListGroupItem>with 1 hard copy</ListGroupItem>
-                                <ListGroupItem >
-                                    Extra Copy
-                                    <InputGroup>
-                                        <InputGroup.Button>
-                                            <Button bsStyle="info" onClick={this.edit} id="std:sub">-</Button>
-                                            {/*<Button bsStyle="info" onClick={this.add} id="stdAdd">+</Button>*/}
-                                        </InputGroup.Button>
-                                        <input type="text" className="form-control" ref="std" defaultValue="0"/>
-                                        <InputGroup.Button>
-                                            <Button bsStyle="info" onClick={this.edit} id="std:add">+</Button>
-                                            {/*<Button bsStyle="info" onClick={this.substract} id="stdSub">-</Button>*/}
-                                        </InputGroup.Button>
-                                    </InputGroup>
-
-                                </ListGroupItem>
-                                <ListGroupItem><Button onClick={this.handleAddToCart} disabled={this.state.buttonDisable} id="std" bsStyle="info"><span className='glyphicon glyphicon-shopping-cart'></span>add to cart</Button></ListGroupItem>
+                                <ListGroupItem><strong>${this.props.priceData.std * this.state.selectedDoc.quantity}
+                                    ({this.props.priceData.std}Each)</strong></ListGroupItem>
+                                <ListGroupItem>Email Delivery Date<br/>{stdDate} 5pm<br/>(4 Business
+                                    days)<br/></ListGroupItem>
+                                <Button onClick={this.handleAddToCart} disabled={this.state.buttonDisable} id="std"
+                                        bsStyle="success">Order</Button>
                             </ListGroup>
                         </Panel>
                     </div>
                     <div className="col-md-4">
-                    <Panel header="Express" bsStyle="success" style={StyleObj.tab}>
-                        <ListGroup fill>
-                            <ListGroupItem><strong>${this.props.priceData.exp}</strong></ListGroupItem>
-                            <ListGroupItem>Estimate Email copy delivery:<br/>{expEmailStart}-{expEmailEnd}</ListGroupItem>
-                            <ListGroupItem>Estimate Hard copy delivery:<br/>{expHardStart}-{expHardEnd}</ListGroupItem>
-                            <ListGroupItem>with 1 hard copy</ListGroupItem>
-                            <ListGroupItem>
-                                Extra Copy
-                                <InputGroup>
-                                    <InputGroup.Button>
-                                        {/*<Button bsStyle="info" onClick={this.add} id="expAdd">+</Button>*/}
-                                        <Button bsStyle="info" onClick={this.edit} id="exp:sub">-</Button>
-                                    </InputGroup.Button>
-                                    <input className="form-control" type="text" ref="exp" defaultValue="0"/>
-                                    <InputGroup.Button>
-                                        {/*<Button bsStyle="info" onClick={this.substract} id="expSub">-</Button>*/}
-                                        <Button bsStyle="info" onClick={this.edit} id="exp:add">+</Button>
-                                    </InputGroup.Button>
-                                </InputGroup>
-                            </ListGroupItem>
-                            <ListGroupItem><Button onClick={this.handleAddToCart} disabled={this.state.buttonDisable} id="exp" bsStyle="info"><span className='glyphicon glyphicon-shopping-cart'></span>add to cart</Button></ListGroupItem>
-                        </ListGroup>
-                    </Panel>
+                        <Panel header="Fast" bsStyle="warning" style={StyleObj.tab}>
+                            <ListGroup fill>
+                                <ListGroupItem><strong>${this.props.priceData.exp * this.state.selectedDoc.quantity}
+                                    ({this.props.priceData.exp}Each)</strong></ListGroupItem>
+                                <ListGroupItem>Email Delivery Date<br/>{expDate} 5pm<br/>(2 Business
+                                    days)<br/></ListGroupItem>
+                                <Button onClick={this.handleAddToCart} disabled={this.state.buttonDisable} id="exp"
+                                        bsStyle="warning">Order</Button>
+                            </ListGroup>
+                        </Panel>
                     </div>
                     <div className="col-md-4">
-                    <Panel header="Urgent" bsStyle="success" style={StyleObj.tab}>
-                        <ListGroup fill>
-                            <ListGroupItem><strong>${this.props.priceData.urg}</strong></ListGroupItem>
-                            <ListGroupItem>Estimate Email copy delivery:<br/>{urgEmailStart}</ListGroupItem>
-                            <ListGroupItem>Estimate Hard copy delivery:<br/>{urgHardStart}-{urgHardEnd}</ListGroupItem>
-                            <ListGroupItem>with 1 hard copy</ListGroupItem>
-                            <ListGroupItem>
-                                Extra Copy
-                                <InputGroup>
-                                    <InputGroup.Button>
-                                        {/*<Button bsStyle="info"  onClick={this.add} id="urgAdd">+</Button>*/}
-                                        <Button bsStyle="info" onClick={this.edit} id="urg:sub">-</Button>
-                                    </InputGroup.Button>
-                                    <input className="form-control" type="text" ref="urg" defaultValue="0"/>
-                                    <InputGroup.Button>
-                                        {/*<Button bsStyle="info"  onClick={this.substract} id="urgSub">-</Button>*/}
-                                        <Button bsStyle="info" onClick={this.edit} id="urg:add">+</Button>
-                                    </InputGroup.Button>
-                                </InputGroup>
-                            </ListGroupItem>
-                            <ListGroupItem><Button onClick={this.handleAddToCart} disabled={this.state.buttonDisable} id="urg" bsStyle="info"><span className='glyphicon glyphicon-shopping-cart'></span>add to cart</Button></ListGroupItem>
-                        </ListGroup>
-                    </Panel>
+                        {this.renderUrgent()}
                     </div>
                 </div>
-                <div className="col-md-3 pull-right" >
-                    <Cart  panelStyle={StyleObj} cartData={this.state.currentCart} />
+                <div className="row divborder">
+                    <p><b>Each Option includes:</b></p>
+                    <p><Glyphicon glyph="ok"/>A NATTI Certified Translation</p>
+                    <p><Glyphicon glyph="ok"/>1 hard copy posted to your Australian Address</p>
+                    <p>for <b>ONE</b> {this.state.selectedDoc.type} Translation from {this.state.selectedDoc.src}
+                        to {this.state.selectedDoc.tar}</p>
+                </div>
+                <div className="row divborder">
+                    <p><Glyphicon glyph="ok"/>You will have the option to choose your postage delivery method <b>at
+                        checkout.</b></p>
+
+                </div>
+                <div className="row divborder">
+                    <p><Glyphicon glyph="ok"/>You will need to provice scans or photos of your documents <b>after you
+                        make payment.</b></p>
+
+                </div>
+                <div>
+                    {this.state.showalert ? <HardcopyAlert show={true}/> : null}
+                    {this.state.speedalert ? <SpeedAlert show={true} close={this.closeAlert.bind(this)}/> : null}
                 </div>
             </div>
         )
     }
 }
-
-
 
 
 export default PriceList;
