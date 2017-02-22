@@ -3,7 +3,10 @@ import ReactDOM from 'react-dom';
 import {hashHistory} from 'react-router';
 import {Button, Table, InputGroup} from 'react-bootstrap';
 import Stripe from './stripe';
+import moment from 'moment-business-days';
 import PubSub from 'pubsub-js';
+import DateUpdateAlert from './alerts/dateUpdateAlert';
+
 
 class Cart extends React.Component {
 
@@ -13,8 +16,17 @@ class Cart extends React.Component {
             this.state = {
                 cart: {
                     items: JSON.parse(localStorage.cart).items,
-                    totalPrice: parseInt(JSON.parse(localStorage.cart).totalPrice)
+                    totalPrice: parseInt(JSON.parse(localStorage.cart).totalPrice),
+                    postageType: JSON.parse(localStorage.cart).postageType
                 },
+                postage: {
+                    postage: false,
+                    postageType: "Regular Post",
+                    quantity: this.numberOfLan(JSON.parse(localStorage.cart)),
+                    postageUnit: 0,
+
+                },
+                dateUpdate: false
             }
         } else {
             this.state = {
@@ -22,11 +34,74 @@ class Cart extends React.Component {
                     items: [],
                     totalPrice: 0
                 },
+                postage: {
+                    postage: false,
+                    postageType: "Regular Post",
+                    quantity: 1,
+                    postageUnit: 0,
+
+                },
+                dateUpdate: false
             }
         }
         this.addMoreDoc = this.addMoreDoc.bind(this);
-        this.handleCheckout = this.handleCheckout.bind(this);
+        this.postage = this.postage.bind(this);
+        this.removePostage = this.removePostage.bind(this);
+        this.dateUpdate = this.dateUpdate.bind(this);
+        this.postEstimation = this.postEstimation.bind(this);
+    }
 
+    dateUpdate() {
+        let cart = this.state.cart;
+        let update = false;
+        const nextday = moment().local().hour() >= 17 ? 1 : 0;
+        for (var i in cart.items) {
+            if (moment().businessAdd(nextday).format("ddd MMM Do") !== cart.items[i].timestamp) {
+                console.log(cart.items[i].timestamp);
+                let newdate = '';
+                switch (cart.items[i].speed) {
+                    case 'regular':
+                        newdate = moment().businessAdd(4 + nextday).format("ddd MMM Do");
+                        break;
+                    case 'express':
+                        newdate = moment().businessAdd(2 + nextday).format("ddd MMM Do");
+                        break;
+                    case 'urgent':
+                        newdate = moment().businessAdd(1 + nextday).format("ddd MMM Do");
+                        break;
+                    default:
+                        null;
+                        break;
+                }
+                update = true;
+                cart.items[i].date = newdate;
+                cart.items[i].timestamp = moment().businessAdd(nextday).format("ddd MMM Do");
+            }
+        }
+        if (update) {
+            this.setState({
+                dateUpdate: true,
+                cart: cart,
+            }, () => {
+                localStorage.cart = JSON.stringify(this.state.cart);
+            })
+        }
+        return update;
+    }
+
+
+    closeAlert() {
+        this.setState({
+            dateUpdate: false
+        });
+    }
+
+    componentDidMount() {
+        if (this.state.cart.postageType) {
+            this.postageCalc(this.state.cart.postageType)
+        }
+        PubSub.publishSync("steps", 2);
+        this.dateUpdate();
     }
 
     addMoreDoc(event) {
@@ -34,29 +109,119 @@ class Cart extends React.Component {
         hashHistory.push('/services');
     }
 
-    handleCheckout() {
 
-        // if(confirm('This button is currently in test and all data will be erased and back to Homepage, do you' +
-        //         'want to continue?')){
-        //     let cart = JSON.parse(localStorage.cart);
-        //     this.printOrder(cart);
-        //     hashHistory.push('/');
-        //     localStorage.clear();
-        // }
-        hashHistory.push('/upload');
+    numberOfLan(cart) {
+        let lanSet = new Set();
+        for (var i in cart.items) {
+            lanSet.add(cart.items[i].sourceLanguage);
+            lanSet.add(cart.items[i].targetLanguage);
+        }
+        const number = lanSet.size - 1
+        if (number > 0) {
+            return number;
+        } else {
+            return 0;
+        }
+        // Calculate the number of language involved except English
+    }
+
+    removePostage() {
+        this.setState({
+            postage: {
+                postage: false,
+                postageType: "Regular Post",
+                quantity: 1,
+                postageUnit: 0,
+            },
+            cart: {
+                items: this.state.cart.items,
+                totalPrice: this.calculateTotal(this.state.cart.items)
+            }
+        }, () => {
+            localStorage.cart = JSON.stringify(this.state.cart);
+        })
+    }
+
+    postageCalc(postageID) {
+        let postageUnit = 0;
+        if (postageID === "Express Post") {
+            postageUnit = 16; //Express Unit
+        }
+        let newPostage = {}
+        const cart = this.state.cart;
+        newPostage.postage = true;
+        newPostage.postageType = postageID;
+        newPostage.quantity = this.numberOfLan(this.state.cart);
+        newPostage.postageUnit = postageUnit;
+        let totalOfCart = this.calculateTotal(cart.items) + newPostage.quantity * newPostage.postageUnit;
+        this.setState({
+            cart: {
+                items: cart.items,
+                totalPrice: totalOfCart,
+                postageType: postageID
+            },
+            postage: newPostage
+        }, () => {
+            localStorage.cart = JSON.stringify(this.state.cart);
+        })
+    }
+
+    postage(event) {
+        if (this.state.postage.postage) {
+            this.removePostage();
+        }
+        let postageID = event.target.id;
+        this.postageCalc(postageID);
+
+    }
+
+    edit(item, event) {
+        const args = event.target.id.split(':');
+        const elementId = args[0];
+        const action = args[1];
+        let postage = this.state.postage;
+        let updatedCart = this.state.cart;
+        let QtyInput = ReactDOM.findDOMNode(this.refs[elementId + ':qty']);
+        let copyQty = parseInt(QtyInput.value);
+        if (action === 'add') {
+            QtyInput.value = copyQty + 1;
+            this.updateItem(updatedCart.items, 'subTotal', item, '+=', 11 * item.quantity);
+            this.updateItem(updatedCart.items, 'extraCop', item, '+=', 1);
+            updatedCart.totalPrice = this.calculateTotal(updatedCart.items) + postage.quantity * postage.postageUnit;
+        } else if (action === 'subs') {
+            if (copyQty <= 0) {
+                return;
+            }
+            QtyInput.value = copyQty - 1;
+            this.updateItem(updatedCart.items, 'subTotal', item, '-=', 11 * item.quantity);
+            this.updateItem(updatedCart.items, 'extraCop', item, '-=', 1)
+            updatedCart.totalPrice = this.calculateTotal(updatedCart.items) + postage.quantity * postage.postageUnit;
+        }
+        this.setState((prevState, props) => {
+            return {
+                cart: updatedCart
+            };
+        });
+        localStorage.cart = JSON.stringify(this.state.cart);
+
     }
 
     remove(item) {
         let newState = this.state.cart;
+        let newPostage = this.state.postage;
         const deletedItemPrice = item.subTotal;
         if (newState.items.indexOf(item) > -1) {
             newState.items.splice(newState.items.indexOf(item), 1);
-            newState.totalPrice -= deletedItemPrice;
-            this.setState({
-                cart: newState
+            newPostage.quantity = this.numberOfLan(newState);
+            newState.totalPrice = this.calculateTotal(newState.items) + newPostage.quantity * newPostage.postageUnit;
+            this.setState((prevState, props) => {
+                return {
+                    cart: newState,
+                    postage: newPostage,
+                };
             });
             localStorage.cart = JSON.stringify(newState);
-            let token=PubSub.publishSync("updateCart","remove");
+            let token = PubSub.publishSync("updateCart", "remove");
             console.log(token);
         }
 
@@ -83,34 +248,65 @@ class Cart extends React.Component {
         });
     }
 
-    edit(item, event) {
-        const args = event.target.id.split(':');
-        const elementId = args[0];
-        const action = args[1];
-        let updatedCart = this.state.cart;
-        let QtyInput = ReactDOM.findDOMNode(this.refs[elementId + ':qty']);
-        let copyQty = parseInt(QtyInput.value);
-        if (action === 'add') {
-            QtyInput.value = copyQty + 1;
-            this.updateItem(updatedCart.items, 'subTotal', item, '+=', 10);
-            updatedCart.totalPrice = this.calculateTotal(updatedCart.items);
-        } else if (action === 'subs') {
-            if (copyQty <= 0) {
-                return;
+    postEstimation(type) {
+        const nextday = moment().local().hour() >= 17 ? 1 : 0;
+        let softCopyDate='';
+        let hardCopyDate='';
+        if (!this.state.cart.items.length) {
+            return (<div></div>)
+        } else {
+            switch (this.state.cart.items[0].speed) {
+                case 'regular':
+                    softCopyDate = moment().businessAdd(4 + nextday)
+                    break;
+                case 'express':
+                    softCopyDate = moment().businessAdd(2 + nextday)
+                    break;
+                case 'urgent':
+                    softCopyDate = moment().businessAdd(1 + nextday)
+                    break;
+                default:
+                    null;
+                    break;
             }
-            QtyInput.value = copyQty - 1;
-            this.updateItem(updatedCart.items, 'subTotal', item, '-=', 10);
-            updatedCart.totalPrice = this.calculateTotal(updatedCart.items);
-        }
-        this.setState({
-            cart: updatedCart
-        });
-        localStorage.cart = JSON.stringify(this.state.cart);
+            switch (type){
+                case 'regular':
+                    hardCopyDate=softCopyDate.businessAdd(7).format("ddd MMM Do");
+                    return (<div style={{display:"inline-block", float:"left"}}>Regular Post time: {hardCopyDate}</div>)
+                case 'express':
+                    hardCopyDate=softCopyDate.businessAdd(2).format("ddd MMM Do");
+                    return (<div style={{display:"inline-block", float:"right"}}>Express Post time: {hardCopyDate}</div>)
+                default:
+                    return (<div></div>)
+            }
 
+        }
     }
 
 
+    renderPostage() {
+        if (this.state.postage.postage === true) {
+            return (
+                <tr>
+                    <td>{this.state.postage.postageType}</td>
+                    <td>{this.state.postage.quantity}</td>
+                    <td>${this.state.postage.postageUnit}</td>
+                    <td colSpan="5">
+                    </td>
+                    <td>
+                        ${this.state.postage.quantity * this.state.postage.postageUnit}</td>
+                    <td><Button bsStyle="danger" onClick={this.removePostage.bind(this)}
+                                id="removePostage">remove</Button></td>
+                </tr>
+            )
+        } else {
+            return null;
+        }
+    }
+
     render() {
+
+        const postage = this.renderPostage();
         const cartItemRow = this.state.cart.items.map((item) => {
             return (
                 <tr key={item.id} id={item.id}>
@@ -135,7 +331,6 @@ class Cart extends React.Component {
                             </InputGroup.Button>
                         </InputGroup>
                     </td>
-
                     <td>${item.subTotal}</td>
                     <td><Button bsStyle="danger" onClick={this.remove.bind(this, item)}
                                 id={'btn-' + item.id}>remove</Button></td>
@@ -161,16 +356,43 @@ class Cart extends React.Component {
                     </thead>
                     <tbody>
                     {this.state.cart.items.length ? cartItemRow : null}
+                    {postage}
                     <tr>
-                        <td colSpan="6" className="text-right">Total Price $:</td>
-                        <td >{this.state.cart.totalPrice}</td>
-                    </tr>
-                    <tr>
-                        <td colSpan="4" className="text-right"><Button bsStyle="success" onClick={this.addMoreDoc}>Add more documents</Button></td>
-                        <td colSpan="2" className="text-right"><Stripe cartData={this.state.cart}/></td>
+                        <td colSpan="7"></td>
+                        <td className="text-right">Total Price $:</td>
+                        <td >{this.calculateTotal(this.state.cart.items) + this.state.postage.quantity * this.state.postage.postageUnit}</td>
                     </tr>
                     </tbody>
                 </Table>
+                {this.postEstimation("regular")}
+                {this.postEstimation("express")}
+                <div className="btn-group btn-group-justified form-inline">
+                    <div className="btn-group">
+                        <Button bsStyle="warning" onClick={this.postage} id="Regular Post">Choose Regular Post</Button>
+                    </div>
+                    <div className="btn-group">
+                        <Button bsStyle="warning" onClick={this.postage} id="Express Post">Choose Express Post</Button>
+                    </div>
+                    <div className="btn-group">
+                        <Button bsStyle="warning" onClick={this.postage} id="No Hard Copy">No Hard Copy Required</Button>
+                    </div>
+                </div>
+
+                <div>
+                    {this.state.dateUpdate ? <DateUpdateAlert show={true} close={this.closeAlert.bind(this)}/> : null}
+                </div>
+
+                <div className="btn-group btn-group-justified form-inline">
+                    <div className="btn-group">
+                        <Button bsStyle="success" onClick={this.addMoreDoc}>Add more
+                            documents</Button>
+                    </div>
+
+                    <div className="btn-group">
+                        <Stripe cartData={this.state.cart} update={this.dateUpdate.bind(this)}/>
+                    </div>
+                </div>
+
             </div >
         );
     }

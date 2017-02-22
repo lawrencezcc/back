@@ -1,6 +1,7 @@
 import React from 'react';
-import {Jumbotron, Button} from 'react-bootstrap';
+import {Button} from 'react-bootstrap';
 import {hashHistory} from 'react-router';
+import PubSub from 'pubsub-js';
 
 
 class MCComponent extends React.Component {
@@ -12,6 +13,10 @@ class MCComponent extends React.Component {
         };
         this.handleChange = this.handleChange.bind(this);
         this.handleProceed = this.handleProceed.bind(this);
+    }
+
+    componentDidMount(){
+        PubSub.publishSync("steps", 1);
     }
 
     handleChange(event) {
@@ -31,7 +36,7 @@ class MCComponent extends React.Component {
         let selectedProduct = JSON.parse(localStorage.selectedDocs);
         selectedProduct.comment = selectedProduct.comment === '' ? 'Affidavit Required?: ' + this.state.selection : selectedProduct.comment + 'Affidavit Required?: ' + this.state.selection
         localStorage.selectedDocs = JSON.stringify(selectedProduct);
-        let path = '/services/quality';
+        let path = '/services/quantity';
         hashHistory.push(path);
     }
 
@@ -40,24 +45,21 @@ class MCComponent extends React.Component {
 
         return (
             <div >
-                <Jumbotron>
-                    <div className="row col-md-6 col-md-offset-3 ">
-                        <h3>Do you need your marriage certificate translated into English for an
-                            application for divorce?</h3>
-                        <div className="row col-md-6 col-md-offset-3">
-                            <label><input type="radio" name="divorce" value="Yes"
-                                                              onChange={this.handleChange}/>Yes&nbsp;&nbsp;</label>
-                            <label><input type="radio" name="divorce" value="No"
-                                                              onChange={this.handleChange}/>No</label>
-                        </div>
+                <div>
+                    <h3>Do you need your marriage certificate translated into English for an
+                        application for divorce?</h3>
+                    <div>
+                        <label><input type="radio" name="divorce" value="Yes"
+                                      onChange={this.handleChange}/>Yes&nbsp;&nbsp;</label>
+                        <label><input type="radio" name="divorce" value="No"
+                                      onChange={this.handleChange}/>No</label>
                     </div>
-                    <div className="row col-md-6 col-md-offset-3 ">
-                        <Button bsStyle="primary" block onClick={this.handleProceed}>
-                            Proceed
-                        </Button>
-                    </div>
-                </Jumbotron>
-
+                </div>
+                <div>
+                    <Button bsStyle="primary" block onClick={this.handleProceed}>
+                        Proceed
+                    </Button>
+                </div>
             </div>
         )
     }

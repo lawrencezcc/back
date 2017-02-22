@@ -7,7 +7,7 @@ import FRC from 'formsy-react-components';
 import NoPayAlert from './alerts/noPaymentAlert';
 import PubSub from 'pubsub-js';
 
-const {Input, Select, File, Textarea} = FRC;
+const {Input, Select, Textarea} = FRC;
 
 const MyForm = React.createClass({
 
@@ -39,7 +39,8 @@ class DocUpload extends React.Component {
             this.state = {
                 cart: {
                     items: [],
-                    totalPrice: 0
+                    totalPrice: 0,
+                    postageType: ""
                 },
                 uploadFiles: [],
                 canSubmit: false,
@@ -56,6 +57,7 @@ class DocUpload extends React.Component {
         this.enableButton = this.enableButton.bind(this);
         this.disableButton = this.disableButton.bind(this);
         this.uploadItem = this.uploadItem.bind(this);
+        this.addressFields = this.addressFields.bind(this);
     }
 
     enableButton() {
@@ -71,16 +73,16 @@ class DocUpload extends React.Component {
     }
 
     componentDidMount() {
-
+        PubSub.publishSync("steps", 3);
         if (localStorage.cart) {
             this.setState({
                 cart: {
                     items: JSON.parse(localStorage.cart).items,
-                    totalPrice: parseInt(JSON.parse(localStorage.cart).totalPrice)
+                    totalPrice: parseInt(JSON.parse(localStorage.cart).totalPrice),
+                    postageType: JSON.parse(localStorage.cart).postageType
                 }
             });
         }
-
     }
 
     handleFileChange(item, event) {
@@ -111,49 +113,53 @@ class DocUpload extends React.Component {
         let formData = ReactDOM.findDOMNode(this.refs.myForm);
         let upData = new FormData();
         let updataArr = this.state.uploadFiles;
-        let count=0;
+        let count = 0;
         updataArr.map((fileObj) => {
 
             for (let i = 0; i < fileObj.fileList.length; i++) {
                 let extension = fileObj.fileList.item(i).name.split('.')[1];
-                upData.append('files[]', fileObj.fileList.item(i), fileObj.name + '-' + fileObj.src + '-' + fileObj.tar + '-' + fileObj.extra + '-' + fileObj.spd + '-' + (parseInt(fileObj.extra)*11+parseInt(fileObj.unitPrice)) + '-' + fileObj.comment + '-' + count + ',' + i + '.' + extension);
+                upData.append('files[]', fileObj.fileList.item(i), fileObj.name + '-' + fileObj.src + '-' + fileObj.tar + '-' + fileObj.extra + '-' + fileObj.spd + '-' + (parseInt(fileObj.extra) * 11 + parseInt(fileObj.unitPrice)) + '-' + fileObj.comment + '-' + count + ',' + i + '.' + extension);
             }
-            count+=1;
+            count += 1;
         });
-        upData.append("fullName", formData['full-name'].value)
+        upData.append("orderID", this.state.order);
+        upData.append("postageType", this.state.cart.postageType);
+        upData.append("fullName", formData['full-name'].value);
         upData.append("mobile", formData['mobile'].value);
         upData.append("email", formData['email'].value);
-        upData.append("address1", formData['street-address'].value);
-        upData.append("address2", formData['street-address2'].value);
-        upData.append("suburb", formData['suburb'].value);
-        upData.append("state", formData['state'].value);
-        upData.append("postcode", formData['postcode'].value);
+        if (this.state.cart.postageType!=="No Hard Copy"){
+            upData.append("address1", formData['street-address'].value);
+            upData.append("address2", formData['street-address2'].value);
+            upData.append("suburb", formData['suburb'].value);
+            upData.append("state", formData['state'].value);
+            upData.append("postcode", formData['postcode'].value);
+        }
         upData.append("comment", formData['comment'].value);
         upData.append("totalprice", this.state.cart.totalPrice);
 
         axios.post(consts.API_URL + '/upload', upData)
             .then((response) => {
-                console.log(response.data);
+                alert("uploaded");
                 localStorage.clear();
+                console.log(response.data);
                 PubSub.publish("upload", "remove to cart");
 
             })
             .catch((err) => {
                 console.log(err.message)
             });
-
-
-
     }
 
     uploadItem(item, index) {
-        let container=[];
+        const nth=["first","second","third","fourth","fifth"]
+        let container = [];
         for (var i = 0; i < item.quantity; i++) {
-            container.push(<input className="file-input btn btn-info form-control" type="file" id={"item-" + index + "-" + i}
-                           name='doc[]' multiple key={"item-" + index + "-" + i}
-                           onChange={(event) => this.handleFileChange(item, event)}
-                           label={item.doc}
-                            />
+            container.push(<div><label key={"label-" + index + "-" + i} htmlFor={"item-" + index + "-" + i}>Upload ALL pages for {nth[i]} {item.doc} </label>
+                <input className="file-input btn btn-info form-control" type="file"
+                                  id={"item-" + index + "-" + i}
+                                  name='doc[]' multiple key={"item-" + index + "-" + i}
+                                  onChange={(event) => this.handleFileChange(item, event)}
+                /></div>
             );
         }
         return container;
@@ -172,19 +178,49 @@ class DocUpload extends React.Component {
         );
     }
 
+    addressFields(){
+        if (this.state.cart.postageType==="No Hard Copy"){
+            return (<div></div>);
+        }else{
+            let statesOptions = [
+                {value: '', label: 'Please select...'},
+                {value: 'act', label: 'Australian Capital Territory'},
+                {value: 'nsw', label: 'New South Wales'},
+                {value: 'nt', label: 'Northern Territory'},
+                {value: 'qld', label: 'Queensland'},
+                {value: 'sa', label: 'South Australia'},
+                {value: 'tas', label: 'Tasmania'},
+                {value: 'vic', label: 'Victoria'},
+                {value: 'wa', label: 'Western Australia'}
+            ];
+            let singleSelectOptions = statesOptions.slice(0);
+            return (
+                <div>
+                    <Input type="text" ref="street-address" name="street-address"
+                           label="Street address" required placeholder="Street Address"
+                    />
+                    <Input type="text" ref="street-address2" name="street-address2"
+                           label="Address line2" placeholder="Street Address Line2 (if required)"
+                    />
+                    <Input type="text" ref="suburb" name="suburb"
+                           label="Suburb" placeholder="Suburb" required
+                    />
+
+                    <Select name="state" ref="state" label="State/Territory" required
+                            options={singleSelectOptions}/>
+
+                    <Input type="text" ref="postcode" name="postcode"
+                           label="Postcode" placeholder="Postcode" required
+                           validations="isLength:4"
+                           validationError="Four digital number"
+                    />
+                </div>
+            );
+        }
+    }
+
     render() {
-        let statesOptions = [
-            {value: '', label: 'Please select...'},
-            {value: 'act', label: 'Australian Capital Territory'},
-            {value: 'nsw', label: 'New South Wales'},
-            {value: 'nt', label: 'Northern Territory'},
-            {value: 'qld', label: 'Queensland'},
-            {value: 'sa', label: 'South Australia'},
-            {value: 'tas', label: 'Tasmania'},
-            {value: 'vic', label: 'Victoria'},
-            {value: 'wa', label: 'Western Australia'}
-        ];
-        let singleSelectOptions = statesOptions.slice(0);
+
 
         if (this.state.paid) {
             return (
@@ -201,7 +237,7 @@ class DocUpload extends React.Component {
                                    required placeholder="Full name."
                                    label="Full name"
                             />
-                            <Input type="text" ref="mobile" name="mobile" required
+                            <Input type="text" ref="mobile" name="mobile"
                                    label="Mobile Number" placeholder="Mobile Number"
                             />
                             <Input type="text" ref="email" name="email" validations="isEmail"
@@ -212,24 +248,7 @@ class DocUpload extends React.Component {
                                    validations="equalsField:email" validationError="Email not match"
                                    label="Confirm Email" placeholder="Confirm Email"
                             />
-                            <Input type="text" ref="street-address" name="street-address"
-                                   label="Street address" required placeholder="Street Address"
-                            />
-                            <Input type="text" ref="street-address2" name="street-address2"
-                                   label="Address line2" placeholder="Street Address Line2 (if required)"
-                            />
-                            <Input type="text" ref="suburb" name="suburb"
-                                   label="Suburb" placeholder="Suburb" required
-                            />
-
-                            <Select name="state" ref="state" label="State/Territory" required
-                                    options={singleSelectOptions}/>
-
-                            <Input type="text" ref="postcode" name="postcode"
-                                   label="Postcode" placeholder="Postcode" required
-                                   validations="isLength:4"
-                                   validationError="Four digital number"
-                            />
+                            {this.addressFields()}
                             <Textarea ref="comment" name="comment" rows={2} placeholder="Comments for these documents
                             .e.g where are you going to use driver's licence" label="Other comment for the services"
                             />

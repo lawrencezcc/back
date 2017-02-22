@@ -1,9 +1,9 @@
 import React from 'react';
 import {Panel, Button, ListGroup, ListGroupItem, Glyphicon} from 'react-bootstrap';
-import HardcopyAlert from './alerts/extraCopyAlert';
 import SpeedAlert from './alerts/speedAlert';
 import moment from 'moment-business-days';
 import PubSub from 'pubsub-js';
+import {hashHistory} from 'react-router';
 
 class PriceList extends React.Component {
     constructor(props) {
@@ -13,10 +13,10 @@ class PriceList extends React.Component {
                 buttonDisable: false,
                 currentCart: {
                     items: JSON.parse(localStorage.cart).items,
-                    totalPrice: parseInt(JSON.parse(localStorage.cart).totalPrice)
+                    totalPrice: parseInt(JSON.parse(localStorage.cart).totalPrice),
+                    postageType: JSON.parse(localStorage.cart).postageType
                 },
                 selectedDoc: JSON.parse(localStorage.selectedDocs),
-                showalert: false,
                 speedalert: false,
                 nextday: moment().local().hour() >= 17 ? 1 : 0,
                 urgAvailable:(this.props.priceData.urgAvail==true)
@@ -29,7 +29,6 @@ class PriceList extends React.Component {
                     totalPrice: 0
                 },
                 selectedDoc: JSON.parse(localStorage.selectedDocs),
-                showalert: false,
                 speedalert: false,
                 nextday: moment().local().hour() >= 17 ? 1 : 0,
                 urgAvailable: (this.props.priceData.urgAvail==true)
@@ -63,7 +62,7 @@ class PriceList extends React.Component {
         for (var i in cart) {
             console.log(speed);
             console.log(cart[i].speed);
-            if (cart[i].speed != speed) {
+            if (cart[i].speed !== speed ) {
                 event.preventDefault();
                 event.stopPropagation();
                 this.setState({speedalert: true});
@@ -80,10 +79,6 @@ class PriceList extends React.Component {
     }
 
     renderUrgent(){
-        console.log(this.state);
-        console.log(this.state.urgAvailable);
-        console.log(this.props.priceData.urgAvail==true);
-        console.log(this.props.priceData.urgAvail);
         let StyleObj = {
             tab: {margin: '2px'},
         };
@@ -146,6 +141,7 @@ class PriceList extends React.Component {
                 break;
         }
         if (this.checkSpeed(item.speed, existCart,event)) {
+            item.timestamp=moment().businessAdd(this.state.nextday).format("ddd MMM Do");
             item.doc = selectedDoc.document;
             item.quantity = selectedDoc.quantity;
             item.sourceLanguage = selectedDoc.sourceLanguage;
@@ -160,40 +156,31 @@ class PriceList extends React.Component {
             this.setState({
                 currentCart: {
                     items: existCart,
-                    totalPrice: totalOfCart
+                    totalPrice: totalOfCart,
+                    postageType:this.state.currentCart.postageType
                 },
                 buttonDisable: true,
-                showalert: true
+            },() => {
+                localStorage.updateCopyID = JSON.stringify(item.id);
+                localStorage.cart = JSON.stringify(this.state.currentCart);
+                PubSub.publish("updateCart", "remove");
+                console.log("updatecart")
+                hashHistory.push("/needExtraCopy");
             })
-            localStorage.updateCopyID = JSON.stringify(item.id);
-            localStorage.cart = JSON.stringify(this.state.currentCart);
+
             event.stopPropagation();
         } else {
             return;
         }
     }
 
-
-    shouldComponentUpdate(nextProps, nextState) {
-
-        this.setState({
-            currentCart: nextState.currentCart
-        });
-        localStorage.cart = JSON.stringify(nextState.currentCart);
-        PubSub.publish("updateCart", "remove");
-        return true;
-
-    }
-
     componentDidMount() {
-        console.log('mount Price component');
         if (localStorage.cart) {
             let storedCart = JSON.parse(localStorage.cart);
             if (storedCart.items.length) {
                 this.setState({currentCart: storedCart});
             }
         }
-
     }
 
     componentWillUnmount() {
@@ -208,7 +195,6 @@ class PriceList extends React.Component {
         };
 
         return (
-
             <div>
                 <div className="row">
                     <div className="col-md-4">
@@ -243,8 +229,8 @@ class PriceList extends React.Component {
                     <p><b>Each Option includes:</b></p>
                     <p><Glyphicon glyph="ok"/>A NATTI Certified Translation</p>
                     <p><Glyphicon glyph="ok"/>1 hard copy posted to your Australian Address</p>
-                    <p>for <b>ONE</b> {this.state.selectedDoc.type} Translation from {this.state.selectedDoc.src}
-                        to {this.state.selectedDoc.tar}</p>
+                    <p>for <b>{this.state.selectedDoc.quantity}</b> {this.state.selectedDoc.document} Translation from {this.state.selectedDoc.sourceLanguage}
+                        to {this.state.selectedDoc.targetLanguage}</p>
                 </div>
                 <div className="row divborder">
                     <p><Glyphicon glyph="ok"/>You will have the option to choose your postage delivery method <b>at
@@ -257,7 +243,6 @@ class PriceList extends React.Component {
 
                 </div>
                 <div>
-                    {this.state.showalert ? <HardcopyAlert show={true}/> : null}
                     {this.state.speedalert ? <SpeedAlert show={true} close={this.closeAlert.bind(this)}/> : null}
                 </div>
             </div>

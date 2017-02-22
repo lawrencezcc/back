@@ -1,6 +1,7 @@
 import React from 'react';
 import {Button} from 'react-bootstrap';
 import {hashHistory} from 'react-router';
+import PubSub from 'pubsub-js';
 
 class QuantityComponent extends React.Component {
     constructor() {
@@ -11,6 +12,10 @@ class QuantityComponent extends React.Component {
             type: JSON.parse(localStorage.selectedDocs).document
         }
     };
+
+    componentDidMount(){
+        PubSub.publishSync("steps", 1);
+    }
 
     handleRedir(button) {
         let selectedProduct = JSON.parse(localStorage.selectedDocs);
@@ -38,15 +43,13 @@ class QuantityComponent extends React.Component {
         })
 
         return (
-            <div className="jumbotron row">
-                <h1>Order your NATTI Certified Translation Online!</h1>
-                <div className="form-group divborder col-sm-8 ">
-                    <div className="form-group">
-                        <p>How many different <b>{this.state.type}</b> would you like to have translated from <b>{this.state.src} to {this.state.tar}</b></p>
-                    </div>
-                    <div className="form-inline btn-group">
-                        {buttons}
-                    </div>
+            <div>
+                <div className="form-group">
+                    <p>How many different <b>{this.state.type}</b> would you like to have translated from
+                        <b>{this.state.src} to {this.state.tar}</b></p>
+                </div>
+                <div className="form-inline btn-group">
+                    {buttons}
                 </div>
             </div>
         )

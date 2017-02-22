@@ -1,7 +1,7 @@
 import React from 'react';
-import {Jumbotron, Button} from 'react-bootstrap';
-import MyAlert from './alerts/alert.comp';
+import {Button} from 'react-bootstrap';
 import {hashHistory} from 'react-router';
+import PubSub from 'pubsub-js';
 
 
 class APComponent extends React.Component {
@@ -13,6 +13,10 @@ class APComponent extends React.Component {
         };
         this.handleChange = this.handleChange.bind(this);
         this.handleProceed = this.handleProceed.bind(this);
+    }
+
+    componentDidMount(){
+        PubSub.publishSync("steps", 1);
     }
 
     handleChange(event) {
@@ -38,7 +42,7 @@ class APComponent extends React.Component {
             path = '/services/Driver\'s Licence Check';
 
         }else{
-            path = '/services/quality';
+            path = '/services/quantity';
         }
         hashHistory.push(path);
     }
@@ -47,10 +51,9 @@ class APComponent extends React.Component {
     render() {
         return (
             <div >
-                <Jumbotron>
-                    <div className="row col-md-6 col-md-offset-3 ">
+                    <div>
                         <h3>Do you need to submit your English document and the translation we provide to DFAT for legalisation?</h3>
-                        <div className="row col-md-6 col-md-offset-3">
+                        <div>
                             <label><input type="radio" name="apo" value="Yes"
                                                                  onChange={this.handleChange}/>Yes&nbsp;&nbsp;</label>
                             <label><input type="radio" name="apo" value="No"
@@ -59,13 +62,11 @@ class APComponent extends React.Component {
                                                                  onChange={this.handleChange}/>Not sure</label>
                         </div>
                     </div>
-                    <div className="row col-md-6 col-md-offset-3 ">
+                    <div>
                         <Button bsStyle="primary" block onClick={this.handleProceed}>
                             Proceed
                         </Button>
                     </div>
-                </Jumbotron>
-
             </div>
         )
     }

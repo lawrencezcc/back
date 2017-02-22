@@ -3,6 +3,7 @@ import axios from 'axios';
 import PriceList from './priceList.comp';
 import Loading from 'react-loading';
 import * as consts from '../constants.js';
+import PubSub from 'pubsub-js';
 
 class GetPrice extends React.Component {
 
@@ -42,6 +43,9 @@ class GetPrice extends React.Component {
         console.log(this.state.currentPrice);
     }
 
+    componentDidMount(){
+        PubSub.publishSync("steps",1);
+    }
 
     render() {
         if (!this.state.currentPrice) {

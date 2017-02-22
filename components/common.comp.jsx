@@ -2,6 +2,9 @@ import React from 'react';
 import {Glyphicon, Label} from 'react-bootstrap';
 import {Link} from 'react-router';
 import PubSub from 'pubsub-js';
+import Steps from "rc-steps";
+import 'rc-steps/assets/index.css';
+import 'rc-steps/assets/iconfont.css'
 
 class Layout extends React.Component {
     constructor(props) {
@@ -12,6 +15,7 @@ class Layout extends React.Component {
                     items: JSON.parse(localStorage.cart).items,
                     totalPrice: parseInt(JSON.parse(localStorage.cart).totalPrice)
                 },
+                step: 0,
             }
         } else {
             this.state = {
@@ -19,6 +23,7 @@ class Layout extends React.Component {
                     items: [],
                     totalPrice: 0.00
                 },
+                step: 0,
             }
         }
         if (localStorage.order) {
@@ -30,12 +35,10 @@ class Layout extends React.Component {
                 upload: false
             }
         }
-        this.update = this.update.bind(this);
         this.cartOrUpload = this.cartOrUpload.bind(this);
     }
 
     componentDidMount() {
-
         this.updatecart = PubSub.subscribe('updateCart', function () { //published in cart and pricelist.
             if (localStorage.cart) {
                 this.setState({
@@ -65,31 +68,17 @@ class Layout extends React.Component {
                 })
             }
         }.bind(this));
+
+        this.updateSteps = PubSub.subscribe('steps', function (msg,data) { //published in upload and paymentsuccessAlert
+            this.setState({step:data})
+        }.bind(this));
     }
 
     componentWillUnmount() {
         console.log("unsubscribe");
         PubSub.unsubscribe(this.updatecart);
         PubSub.unsubscribe(this.uploadDoc);
-    }
-
-    update() {
-        console.log("updated price")
-        if (localStorage.cart) {
-            this.setState({
-                cart: {
-                    items: JSON.parse(localStorage.cart).items,
-                    totalPrice: parseInt(JSON.parse(localStorage.cart).totalPrice)
-                },
-            })
-        } else {
-            this.setState({
-                cart: {
-                    items: [],
-                    totalPrice: 0.00
-                }
-            })
-        }
+        PubSub.unsubscribe(this.updateSteps);
     }
 
     cartOrUpload() {
@@ -100,14 +89,31 @@ class Layout extends React.Component {
         } else {
             return (
                 <Link to="/cart"><Glyphicon glyph="shopping-cart"/>
-                    Cart{this.state.cart ?  "$" + this.state.cart.totalPrice + "(" + this.state.cart.items.length + ")":" Empty"  }
+                    Cart{this.state.cart ? "$" + this.state.cart.totalPrice + "(" + this.state.cart.items.length + ")" : " Empty"  }
                 </Link>
             )
         }
     }
 
-    render() {
 
+    render() {
+        const steps = [{
+            title: 'Document',
+        }, {
+            title: 'Options',
+        }, {
+            title: 'Payment',
+        }, {
+            title: 'Upload Documents',
+        }].map((s, i) => {
+            return (
+                <Steps.Step
+                    key={i}
+                    status={s.status}
+                    title={s.title}
+                />
+            );
+        });
         return (
             <div>
                 <nav className="navbar navbar-default navbar-transparent">
@@ -120,7 +126,7 @@ class Layout extends React.Component {
                                 <span className="icon-bar"></span>
                                 <span className="icon-bar"></span>
                             </button>
-                            <Link className="navbar-brand brand-name " to="/">Ethnolink</Link>
+                            <Link className="navbar-brand brand-name " to="/services">Ethnolink</Link>
                         </div>
                         <div className="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                             <ul className="nav navbar-nav menu">
@@ -136,10 +142,12 @@ class Layout extends React.Component {
                     </div>
                 </nav>
                 <div className="container">
+                    <Steps current={this.state.step}>{steps}</Steps>
+                </div>
+                <div className="container">
                     {this.props.children}
                 </div>
             </div>
-
         );
     }
 

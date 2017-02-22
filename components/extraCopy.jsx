@@ -1,9 +1,9 @@
 import React from 'react';
 import {Button} from 'react-bootstrap';
 import PubSub from 'pubsub-js';
-import AddtoCart from './alerts/addtocartAlert';
+import {hashHistory} from 'react-router';
 
-class ExtraCopyComponent extends React.Component{ //TODO 啥都没改呢
+class ExtraCopyComponent extends React.Component{
 
     constructor() {
         super();
@@ -12,10 +12,12 @@ class ExtraCopyComponent extends React.Component{ //TODO 啥都没改呢
                 items : JSON.parse(localStorage.cart).items,
                 totalPrice: parseInt(JSON.parse(localStorage.cart).totalPrice)
             },
-            showalert: false
         }
         this.updateCopy=this.updateCopy.bind(this);
         this.handleRedir = this.handleRedir.bind(this);
+    }
+    componentDidMount(){
+        PubSub.publishSync("steps", 1);
     }
 
     updateCopy(items,number,id){
@@ -49,12 +51,12 @@ class ExtraCopyComponent extends React.Component{ //TODO 啥都没改呢
                 items: newitems,
                 totalPrice: totalOfCart
             },
-            showalert: true
         },
             function () {
                 localStorage.cart = JSON.stringify(this.state.currentCart);
                 PubSub.publish("updateCart", "update");
                 console.log("publish");
+                hashHistory.push('/addMoreDoc');
         });
     }
 
@@ -79,9 +81,6 @@ class ExtraCopyComponent extends React.Component{ //TODO 啥都没改呢
                             {buttons}
                         </div>
                     </div>
-                </div>
-                <div>
-                    {this.state.showalert ? <AddtoCart show={true}/> : null}
                 </div>
             </div>
         )

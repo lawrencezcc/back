@@ -97,3 +97,7 @@
     min-width: 380px;
     max-width: 600px;
 }
+
+.selecterror{
+    border: 2px solid red;
+}
