@@ -62,11 +62,11 @@ class IndexComponent extends React.Component {
         if (selectValue === 'selected') {
             return;
         }
-        cached.document=selectValue;
+        cached.document = selectValue;
 
         this.setState({
             selectedVal: cached,
-        },function () {
+        }, function () {
             console.log(this.state.selectedVal);
         });
 
@@ -186,7 +186,7 @@ class IndexComponent extends React.Component {
                 {value: "English", label: "English"}
             ];
             return (
-                <div className="form-group">
+                <div className="form-group form-inline">
                     <Select name="source-language" id="source-language" placeholder="from what language?"
                             onChange={this.handleSrcLanguage} value={this.state.selectedVal.sourceLanguage}
                             options={fr} clearable={true} searchable={true}
@@ -195,7 +195,7 @@ class IndexComponent extends React.Component {
             );
         } else {
             return (
-                <div>
+                <div className="form-group form-inline">
                     <Select name="source-language" id="source-language" placeholder="from what language?"
                             onChange={this.handleSrcLanguage} value={this.state.selectedVal.sourceLanguage}
                             options={this.languageOption()} clearable={true} searchable={true}
@@ -213,7 +213,7 @@ class IndexComponent extends React.Component {
                 {value: "English", label: "English"}
             ];
             return (
-                <div className="form-group">
+                <div className="form-group form-inline">
                     <Select name="target-language" id="target-language" placeholder="into what language?"
                             onChange={this.handleTarLanguage} value={this.state.selectedVal.targetLanguage
                     } className={this.state.alert ? "selecterror" : ""}
@@ -222,7 +222,7 @@ class IndexComponent extends React.Component {
             );
         } else {
             return (
-                <div>
+                <div className="form-group form-inline">
                     <Select name="target-language" id="target-language" placeholder="into what language?"
                             onChange={this.handleTarLanguage} value={this.state.selectedVal.targetLanguage}
                             options={this.languageOption()} clearable={true} searchable={true}
@@ -255,29 +255,31 @@ class IndexComponent extends React.Component {
             <div>
                 <div className="form-inline form-group">
                     <div className="form-inline">
-                        <a className={this.state.selectedVal.document==="Birth Certificate" ? "btn btn-lg btn-warning" : "btn btn-lg btn-success"}
+                        <a className={this.state.selectedVal.document === "Birth Certificate" ? "btn btn-lg btn-warning" : "btn btn-lg btn-success"}
                            onClick={this.docButtonHandler} id="Birth Certificate">
-                            <i className="fa fa-birthday-cake fa-lg" id="Birth Certificate" ></i><br/>Birth<br/>Certificate</a>
-                        <a className={this.state.selectedVal.document==="Driver's Licence" ? "btn btn-lg btn-warning" : "btn btn-lg btn-success"}
+                            <i className="fa fa-birthday-cake fa-lg" id="Birth Certificate"></i><br/>Birth<br/>Certificate</a>
+                        <a className={this.state.selectedVal.document === "Driver's Licence" ? "btn btn-lg btn-warning" : "btn btn-lg btn-success"}
                            onClick={this.docButtonHandler} id="Driver's Licence">
                             <i className="fa fa-id-card-o fa-lg" id="Driver's Licence"></i><br/>Driver's<br/>Licence</a>
-                        <a className={this.state.selectedVal.document==="Degree Certificate" ? "btn btn-lg btn-warning" : "btn btn-lg btn-success"}
+                        <a className={this.state.selectedVal.document === "Degree Certificate" ? "btn btn-lg btn-warning" : "btn btn-lg btn-success"}
                            onClick={this.docButtonHandler} id="Degree Certificate">
                             <i className="fa fa-graduation-cap fa-lg" id="Degree Certificate"></i><br/>Degree<br/>Certificate</a>
-                        <a className={this.state.selectedVal.document==="Marriage Certificate" ? "btn btn-lg btn-warning" : "btn btn-lg btn-success"}
+                        <a className={this.state.selectedVal.document === "Marriage Certificate" ? "btn btn-lg btn-warning" : "btn btn-lg btn-success"}
                            onClick={this.docButtonHandler} id="Marriage Certificate">
                             <i className="fa fa-heart fa-lg" id="Marriage Certificate"></i><br/>Marriage<br/>Certificate</a>
                     </div>
-                    <select name="document" id="document" className="form-control input-lg" onChange={this.handleChange}
-                            value={this.state.selectedVal.document}>
-                        <option value="selected">What document would you like us to translate?</option>
-                        {this.docOption()}
-                    </select>
+                    <div className="input-group">
+                        <span className="input-group-addon">OR</span>
+                        <select name="document" id="document" className="form-control input-lg"
+                                onChange={this.handleChange}
+                                value={this.state.selectedVal.document}>
+                            <option value="selected">What document would you like us to translate?</option>
+                            {this.docOption()}
+                        </select>
+                    </div>
                 </div>
                 <div className="form-group">
                     {this.srcLanguageSelect(this.state.selectedVal.document)}
-                </div>
-                <div className="form-group">
                     {this.tarLanguageSelect(this.state.selectedVal.document)}
                 </div>
                 <div className="row col-md-6 col-md-offset-3">
