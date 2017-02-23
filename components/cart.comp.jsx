@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import {hashHistory} from 'react-router';
 import {Button, Table, InputGroup} from 'react-bootstrap';
 import Stripe from './stripe';
-import moment from 'moment-business-days';
+import momentTimeZone from 'moment-timezone';
 import PubSub from 'pubsub-js';
 import DateUpdateAlert from './alerts/dateUpdateAlert';
 
@@ -54,7 +54,7 @@ class Cart extends React.Component {
     dateUpdate() {
         let cart = this.state.cart;
         let update = false;
-        const nextday = moment().local().hour() >= 17 ? 1 : 0;
+        const nextday = momentTimeZone().tz("Australia/Sydney").hour() >= 17 ? 1 : 0;
         for (var i in cart.items) {
             if (moment().businessAdd(nextday).format("ddd MMM Do") !== cart.items[i].timestamp) {
                 console.log(cart.items[i].timestamp);
@@ -249,7 +249,7 @@ class Cart extends React.Component {
     }
 
     postEstimation(type) {
-        const nextday = moment().local().hour() >= 17 ? 1 : 0;
+        const nextday = momentTimeZone().tz("Australia/Sydney").hour() >= 17 ? 1 : 0;
         let softCopyDate='';
         let hardCopyDate='';
         if (!this.state.cart.items.length) {

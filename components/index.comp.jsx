@@ -18,16 +18,18 @@ class IndexComponent extends React.Component {
             selectedVal: {
                 comment: '',
                 quantity: 1,
-                document: '',
+                document: 'selected',
                 sourceLanguage: '',
                 targetLanguage: ''
             },
             alert: false,
+            reset: true,
         };
         this.handleRedir = this.handleRedir.bind(this);
         this.handleChange = this.handleChange.bind(this);
         this.handleSrcLanguage = this.handleSrcLanguage.bind(this);
         this.handleTarLanguage = this.handleTarLanguage.bind(this);
+        this.docButtonHandler = this.docButtonHandler.bind(this);
     };
 
     componentWillMount() {
@@ -50,82 +52,24 @@ class IndexComponent extends React.Component {
     }
 
 
-    componentDidMount(){
+    componentDidMount() {
         PubSub.publishSync("steps", 0);
     }
 
     handleChange(event) {
-        let selectId = event.target.id;
         let selectValue = event.target.value;
         let cached = this.state.selectedVal;
-        let displayState = {
-            srcEnglishOnly: this.state.srcEnglishOnly,
-            tarEnglishOnly: this.state.tarEnglishOnly
-        }
-
         if (selectValue === 'selected') {
             return;
         }
-        if (selectId === 'source-language' && selectValue != 'English' && !displayState.tarEnglishOnly) {
-            displayState.tarEnglishOnly = true;
-        } else if (selectId === 'source-language' && selectValue === 'English' && displayState.tarEnglishOnly) {
-            displayState.tarEnglishOnly = false;
-        }
-        if (selectId === 'target-language' && selectValue != 'English' && !displayState.srcEnglishOnly) {
-            displayState.srcEnglishOnly = true;
-        } else if (selectId === 'target-language' && selectValue === 'English' && displayState.srcEnglishOnly) {
-            displayState.srcEnglishOnly = false;
-        }
-        switch (selectId) {
-            case 'document':
-                cached.document = selectValue;
-                if (selectValue === 'Family Register') {
-                    cached.sourceLanguage = 'selected';
-                    cached.targetLanguage = 'selected'
-                }
-                break;
-            case 'source-language':
-                if (selectValue === cached.targetLanguage) {
-                    alert("cannot select same language as source and target language!!");
-                    this.setState({
-                        selectedVal: {
-                            document: cached.document,
-                            sourceLanguage: 'selected',
-                            targetLanguage: cached.targetLanguage
-                        }
-                    });
-                    return;
-                }
-                cached.sourceLanguage = selectValue;
-                cached.targetLanguage = 'English';
-                console.log("src= %s", selectValue)
-                break;
-            case 'target-language':
-                if (selectValue === cached.sourceLanguage) {
-                    alert("cannot select same language as source and target language!!");
-                    this.setState({
-                        selectedVal: {
-                            document: cached.document,
-                            sourceLanguage: cached.sourceLanguage,
-                            targetLanguage: 'selected'
-                        }
-                    });
-                    return;
-                }
-                cached.targetLanguage = selectValue;
-                cached.sourceLanguage = 'English';
-                console.log("tar= %s", selectValue)
-                break;
-            default :
-                null;
-                break;
-        }
-        cached.comment = '';
+        cached.document=selectValue;
+
         this.setState({
             selectedVal: cached,
-            srcEnglishOnly: displayState.srcEnglishOnly,
-            tarEnglishOnly: displayState.tarEnglishOnly
+        },function () {
+            console.log(this.state.selectedVal);
         });
+
     }
 
     handleSrcLanguage(newValue) {
@@ -245,7 +189,8 @@ class IndexComponent extends React.Component {
                 <div className="form-group">
                     <Select name="source-language" id="source-language" placeholder="from what language?"
                             onChange={this.handleSrcLanguage} value={this.state.selectedVal.sourceLanguage}
-                            options={fr} clearable={true} searchable={true} className={this.state.alert?"selecterror":""}/>
+                            options={fr} clearable={true} searchable={true}
+                            className={this.state.alert ? "selecterror" : ""}/>
                 </div>
             );
         } else {
@@ -253,7 +198,8 @@ class IndexComponent extends React.Component {
                 <div>
                     <Select name="source-language" id="source-language" placeholder="from what language?"
                             onChange={this.handleSrcLanguage} value={this.state.selectedVal.sourceLanguage}
-                            options={this.languageOption()} clearable={true} searchable={true} className={this.state.alert?"selecterror":""}/>
+                            options={this.languageOption()} clearable={true} searchable={true}
+                            className={this.state.alert ? "selecterror" : ""}/>
                 </div>
             )
         }
@@ -270,7 +216,7 @@ class IndexComponent extends React.Component {
                 <div className="form-group">
                     <Select name="target-language" id="target-language" placeholder="into what language?"
                             onChange={this.handleTarLanguage} value={this.state.selectedVal.targetLanguage
-                            } className={this.state.alert?"selecterror":""}
+                    } className={this.state.alert ? "selecterror" : ""}
                             options={fr} clearable={true} searchable={true}/>
                 </div>
             );
@@ -279,11 +225,21 @@ class IndexComponent extends React.Component {
                 <div>
                     <Select name="target-language" id="target-language" placeholder="into what language?"
                             onChange={this.handleTarLanguage} value={this.state.selectedVal.targetLanguage}
-                            options={this.languageOption()} clearable={true} searchable={true} className={this.state.alert?"selecterror":""}/>
+                            options={this.languageOption()} clearable={true} searchable={true}
+                            className={this.state.alert ? "selecterror" : ""}/>
                 </div>
             )
         }
 
+    }
+
+    docButtonHandler(event) {
+        let selectId = event.target.id;
+        let cached = this.state.selectedVal;
+        cached.document = selectId;
+        this.setState({
+            selectedVal: cached,
+        });
     }
 
     render() {
@@ -295,10 +251,25 @@ class IndexComponent extends React.Component {
             );
         }
         return (
+
             <div>
                 <div className="form-inline form-group">
+                    <div className="form-inline">
+                        <a className={this.state.selectedVal.document==="Birth Certificate" ? "btn btn-lg btn-warning" : "btn btn-lg btn-success"}
+                           onClick={this.docButtonHandler} id="Birth Certificate">
+                            <i className="fa fa-birthday-cake fa-lg" id="Birth Certificate" ></i><br/>Birth<br/>Certificate</a>
+                        <a className={this.state.selectedVal.document==="Driver's Licence" ? "btn btn-lg btn-warning" : "btn btn-lg btn-success"}
+                           onClick={this.docButtonHandler} id="Driver's Licence">
+                            <i className="fa fa-id-card-o fa-lg" id="Driver's Licence"></i><br/>Driver's<br/>Licence</a>
+                        <a className={this.state.selectedVal.document==="Degree Certificate" ? "btn btn-lg btn-warning" : "btn btn-lg btn-success"}
+                           onClick={this.docButtonHandler} id="Degree Certificate">
+                            <i className="fa fa-graduation-cap fa-lg" id="Degree Certificate"></i><br/>Degree<br/>Certificate</a>
+                        <a className={this.state.selectedVal.document==="Marriage Certificate" ? "btn btn-lg btn-warning" : "btn btn-lg btn-success"}
+                           onClick={this.docButtonHandler} id="Marriage Certificate">
+                            <i className="fa fa-heart fa-lg" id="Marriage Certificate"></i><br/>Marriage<br/>Certificate</a>
+                    </div>
                     <select name="document" id="document" className="form-control input-lg" onChange={this.handleChange}
-                            defaultValue={this.state.selectedVal.document}>
+                            value={this.state.selectedVal.document}>
                         <option value="selected">What document would you like us to translate?</option>
                         {this.docOption()}
                     </select>

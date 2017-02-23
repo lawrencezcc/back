@@ -2,6 +2,7 @@ import React from 'react';
 import {Panel, Button, ListGroup, ListGroupItem, Glyphicon} from 'react-bootstrap';
 import SpeedAlert from './alerts/speedAlert';
 import moment from 'moment-business-days';
+import momentTimeZone from 'moment-timezone';
 import PubSub from 'pubsub-js';
 import {hashHistory} from 'react-router';
 
@@ -18,7 +19,7 @@ class PriceList extends React.Component {
                 },
                 selectedDoc: JSON.parse(localStorage.selectedDocs),
                 speedalert: false,
-                nextday: moment().local().hour() >= 17 ? 1 : 0,
+                nextday: momentTimeZone().tz("Australia/Sydney").hour() >= 17 ? 1 : 0,
                 urgAvailable:(this.props.priceData.urgAvail==true)
             }
         } else {
