@@ -122,6 +122,7 @@ class IndexComponent extends React.Component {
             });
             return;
         }
+
         console.log("tar= %s", selectValue)
         this.setState({
             selectedVal: cached,

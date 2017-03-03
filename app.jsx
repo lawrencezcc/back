@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import {Router, Route, IndexRoute, hashHistory,IndexRedirect,Redirect} from 'react-router';
+import {Router, Route, IndexRoute, hashHistory, IndexRedirect, Redirect} from 'react-router';
 import Layout from './components/common.comp';
 import ContactComponent from './components/contact.comp.jsx';
 import ServiceComponent from './components/service.comp.jsx';
@@ -19,7 +19,7 @@ import AddMoreDocComponent from './components/addMoreDoc.comp';
 ReactDOM.render(
     <Router history={hashHistory}>
         <Route path="/" component={Layout}>
-            <IndexRedirect to="/services" />
+            <IndexRedirect to="/services"/>
             <Route path="/services" component={ServiceComponent}>
                 <IndexRoute component={IndexComponent}/>
                 <Route path="/services/Driver's Licence Check" component={DLComponent}/>
@@ -27,15 +27,15 @@ ReactDOM.render(
                 <Route path="/services/Marriage Certificate Check" component={MCComponent}/>
                 <Route path="/services/quantity" component={Quantity}/>
             </Route>
-
             <Route path="/services/:doc" component={GetPrice}/>
-            <Route path="/cart" component={Cart}/>
             <Route path="/extraCopy" component={ExtraCopyComponent}/>
             <Route path="/needExtraCopy" component={NeedExtraCopyComponent}/>
             <Route path="/addMoreDoc" component={AddMoreDocComponent}/>
             <Route path="/contact" component={ContactComponent}/>
-            <Route path="/upload" component={DocUpload}/>
+            <Route path="/cart" component={Cart}>
+                <IndexRoute component={DocUpload}/>
+            </Route>
         </Route>
     </Router>,
-document.getElementById('app')
+    document.getElementById('app')
 );

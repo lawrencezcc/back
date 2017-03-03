@@ -26,7 +26,7 @@ export default class Stripe extends React.Component {
     }
 
     checkPostage(e){
-        if (this.props.update()){
+        if (this.props.update){
             e.preventDefault();
             e.stopPropagation();
             return false;
@@ -49,6 +49,7 @@ export default class Stripe extends React.Component {
             loading:true
         })
         let upData = new FormData();
+        upData.append("ordernumber",this.props.orderNumber)
         upData.append("amount",this.props.cartData.totalPrice*100);
         upData.append("email",token.email);
         upData.append("token",token.id);
@@ -56,8 +57,8 @@ export default class Stripe extends React.Component {
             .then(response => {
                 if (response.status===200){
                     console.log(response);
-                    localStorage.order = JSON.stringify(response.data.Ordernumber);
                     this.setState({show:true,loading:false});
+                    localStorage.clear();
                 }
             })
             .catch((err) => {
@@ -70,14 +71,15 @@ export default class Stripe extends React.Component {
             <div>
                 <StripeCheckout
                     token={this.onToken}
+                    email={this.props.email}
                     stripeKey="pk_test_2BJax9e2RkWuaPNwzsE0ZW07"
                     name="Ethnolink"
                     description="Professional Translation Services"
-                    image="../img/logo.jpg"
+                    image="./img/logo.jpg"
                     currency="AUD"
                     amount={this.props.cartData.totalPrice*100}
                 >
-                    <button className="btn btn-success" onClick={this.checkPostage}>
+                    <button className="btn btn-success form-control" onClick={this.checkPostage} disabled={this.props.disabled}>
                         Checkout
                     </button>
                 </StripeCheckout>

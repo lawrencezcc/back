@@ -26,16 +26,6 @@ class Layout extends React.Component {
                 step: 0,
             }
         }
-        if (localStorage.order) {
-            this.state = {
-                upload: true
-            }
-        } else {
-            this.state = {
-                upload: false
-            }
-        }
-        this.cartOrUpload = this.cartOrUpload.bind(this);
     }
 
     componentDidMount() {
@@ -57,52 +47,22 @@ class Layout extends React.Component {
             }
         }.bind(this));
 
-        this.uploadDoc = PubSub.subscribe('upload', function () { //published in upload and paymentsuccessAlert
-            if (localStorage.order) {
-                this.setState({
-                    upload: true
-                })
-            } else {
-                this.setState({
-                    upload: false
-                })
-            }
-        }.bind(this));
-
-        this.updateSteps = PubSub.subscribe('steps', function (msg,data) { //published in upload and paymentsuccessAlert
-            this.setState({step:data})
+        this.updateSteps = PubSub.subscribe('steps', function (msg, data) { //published in upload and paymentsuccessAlert
+            this.setState({step: data})
         }.bind(this));
     }
 
     componentWillUnmount() {
         console.log("unsubscribe");
         PubSub.unsubscribe(this.updatecart);
-        PubSub.unsubscribe(this.uploadDoc);
         PubSub.unsubscribe(this.updateSteps);
     }
-
-    cartOrUpload() {
-        if (this.state.upload) {
-            return (
-                <Link to="/upload"><Glyphicon glyph="upload"/> Upload</Link>
-            )
-        } else {
-            return (
-                <Link to="/cart"><Glyphicon glyph="shopping-cart"/>
-                    Cart{this.state.cart ? "$" + this.state.cart.totalPrice + "(" + this.state.cart.items.length + ")" : " Empty"  }
-                </Link>
-            )
-        }
-    }
-
 
     render() {
         const steps = [{
             title: 'Document',
         }, {
             title: 'Options',
-        }, {
-            title: 'Payment',
         }, {
             title: 'Upload Documents',
         }].map((s, i) => {
@@ -131,7 +91,9 @@ class Layout extends React.Component {
                         <div className="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
                             <ul className="nav navbar-nav menu">
                                 <li>
-                                    {this.cartOrUpload()}
+                                    <Link to="/cart"><Glyphicon glyph="shopping-cart"/>
+                                        Cart{this.state.cart ? "$" + this.state.cart.totalPrice + "(" + this.state.cart.items.length + ")" : " Empty"  }
+                                    </Link>
                                 </li>
                                 <li>
                                     <Link to="/contact"><Glyphicon glyph="envelope"/> Contact</Link>

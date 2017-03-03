@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "watch": "webpack -d",
     "build": "webpack",
-    "start": "webpack-dev-server --hot --inline --colors build"
+    "start": "webpack-dev-server --hot --inline --colors --watch build"
   },
   "repository": {
     "type": "git",

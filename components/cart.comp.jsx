@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import {hashHistory} from 'react-router';
 import {Button, Table, InputGroup} from 'react-bootstrap';
-import Stripe from './stripe';
+import moment from 'moment-business-days';
 import momentTimeZone from 'moment-timezone';
 import PubSub from 'pubsub-js';
 import DateUpdateAlert from './alerts/dateUpdateAlert';
@@ -17,7 +17,8 @@ class Cart extends React.Component {
                 cart: {
                     items: JSON.parse(localStorage.cart).items,
                     totalPrice: parseInt(JSON.parse(localStorage.cart).totalPrice),
-                    postageType: JSON.parse(localStorage.cart).postageType
+                    postageType: JSON.parse(localStorage.cart).postageType,
+                    hardCopyDate: JSON.parse(localStorage.cart).hardCopyDate,
                 },
                 postage: {
                     postage: false,
@@ -26,6 +27,7 @@ class Cart extends React.Component {
                     postageUnit: 0,
 
                 },
+                form: {},
                 dateUpdate: false
             }
         } else {
@@ -41,6 +43,7 @@ class Cart extends React.Component {
                     postageUnit: 0,
 
                 },
+                form: {},
                 dateUpdate: false
             }
         }
@@ -49,7 +52,9 @@ class Cart extends React.Component {
         this.removePostage = this.removePostage.bind(this);
         this.dateUpdate = this.dateUpdate.bind(this);
         this.postEstimation = this.postEstimation.bind(this);
+        this.remove = this.remove.bind(this);
     }
+
 
     dateUpdate() {
         let cart = this.state.cart;
@@ -109,7 +114,6 @@ class Cart extends React.Component {
         hashHistory.push('/services');
     }
 
-
     numberOfLan(cart) {
         let lanSet = new Set();
         for (var i in cart.items) {
@@ -139,7 +143,9 @@ class Cart extends React.Component {
             }
         }, () => {
             localStorage.cart = JSON.stringify(this.state.cart);
+
         })
+        this.forceUpdate();
     }
 
     postageCalc(postageID) {
@@ -158,12 +164,15 @@ class Cart extends React.Component {
             cart: {
                 items: cart.items,
                 totalPrice: totalOfCart,
-                postageType: postageID
+                postageType: postageID,
+                hardCopyDate: this.postDateCalc(postageID),
             },
             postage: newPostage
         }, () => {
             localStorage.cart = JSON.stringify(this.state.cart);
+
         })
+        this.forceUpdate();
     }
 
     postage(event) {
@@ -222,6 +231,7 @@ class Cart extends React.Component {
             });
             localStorage.cart = JSON.stringify(newState);
             let token = PubSub.publishSync("updateCart", "remove");
+            this.forceUpdate();
             console.log(token);
         }
 
@@ -248,10 +258,11 @@ class Cart extends React.Component {
         });
     }
 
-    postEstimation(type) {
+
+    postDateCalc(type) {
         const nextday = momentTimeZone().tz("Australia/Sydney").hour() >= 17 ? 1 : 0;
-        let softCopyDate='';
-        let hardCopyDate='';
+        let softCopyDate = '';
+        let hardCopyDate = '';
         if (!this.state.cart.items.length) {
             return (<div></div>)
         } else {
@@ -269,17 +280,27 @@ class Cart extends React.Component {
                     null;
                     break;
             }
-            switch (type){
-                case 'regular':
-                    hardCopyDate=softCopyDate.businessAdd(7).format("ddd MMM Do");
-                    return (<div style={{display:"inline-block", float:"left"}}>Regular Post time: {hardCopyDate}</div>)
-                case 'express':
-                    hardCopyDate=softCopyDate.businessAdd(2).format("ddd MMM Do");
-                    return (<div style={{display:"inline-block", float:"right"}}>Express Post time: {hardCopyDate}</div>)
+            switch (type) {
+                case 'Regular Post':
+                    hardCopyDate = softCopyDate.businessAdd(7).format("ddd MMM Do");
+                    return hardCopyDate;
+                case 'Express Post':
+                    hardCopyDate = softCopyDate.businessAdd(2).format("ddd MMM Do");
+                    return hardCopyDate;
                 default:
-                    return (<div></div>)
+                    return;
             }
+        }
+    }
 
+    postEstimation(type) {
+        switch (type) {
+            case 'Regular Post':
+                return (<div style={{display: "inline-block", float: "left"}}>Regular Post time: {this.postDateCalc("Regular Post")}</div>)
+            case 'Express Post':
+                return (<div style={{display: "inline-block", float: "right"}}>Express Post time: {this.postDateCalc("Express Post")}</div>)
+            default:
+                return (<div></div>)
         }
     }
 
@@ -305,8 +326,13 @@ class Cart extends React.Component {
     }
 
     render() {
-
         const postage = this.renderPostage();
+        const childrenWithProps = React.Children.map(this.props.children,
+            (child) => React.cloneElement(child, {
+                cart: this.state.cart,
+                update: this.dateUpdate(),
+            })
+        );
         const cartItemRow = this.state.cart.items.map((item) => {
             return (
                 <tr key={item.id} id={item.id}>
@@ -364,8 +390,8 @@ class Cart extends React.Component {
                     </tr>
                     </tbody>
                 </Table>
-                {this.postEstimation("regular")}
-                {this.postEstimation("express")}
+                {this.postEstimation("Regular Post")}
+                {this.postEstimation("Express Post")}
                 <div className="btn-group btn-group-justified form-inline">
                     <div className="btn-group">
                         <Button bsStyle="warning" onClick={this.postage} id="Regular Post">Choose Regular Post</Button>
@@ -374,7 +400,8 @@ class Cart extends React.Component {
                         <Button bsStyle="warning" onClick={this.postage} id="Express Post">Choose Express Post</Button>
                     </div>
                     <div className="btn-group">
-                        <Button bsStyle="warning" onClick={this.postage} id="No Hard Copy">No Hard Copy Required</Button>
+                        <Button bsStyle="warning" onClick={this.postage} id="No Hard Copy">No Hard Copy
+                            Required</Button>
                     </div>
                 </div>
 
@@ -387,12 +414,10 @@ class Cart extends React.Component {
                         <Button bsStyle="success" onClick={this.addMoreDoc}>Add more
                             documents</Button>
                     </div>
-
-                    <div className="btn-group">
-                        <Stripe cartData={this.state.cart} update={this.dateUpdate.bind(this)}/>
-                    </div>
                 </div>
-
+                <div>
+                    {childrenWithProps}
+                </div>
             </div >
         );
     }

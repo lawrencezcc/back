@@ -24,17 +24,17 @@ class PaySuccess extends React.Component {
                     onConfirm={() => {
                         PubSub.publish("upload", "change to upload");
                         this.setState({show: false});
-                        hashHistory.push('/upload');
+                        hashHistory.push("/");
                     }}
                     onEscapeKey={() => {
                         PubSub.publish("upload", "change to upload");
                         this.setState({show: false});
-                        hashHistory.push('/upload');
+                        hashHistory.push("/");
                     }}
                     onOutsideClick={() => {
                         PubSub.publish("upload", "change to upload");
                         this.setState({show: false});
-                        hashHistory.push('/upload');
+                        hashHistory.push("/");
                     }}
                 />
             </div>

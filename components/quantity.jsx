@@ -45,8 +45,7 @@ class QuantityComponent extends React.Component {
         return (
             <div>
                 <div className="form-group">
-                    <p>How many different <b>{this.state.type}</b> would you like to have translated from
-                        <b>{this.state.src} to {this.state.tar}</b></p>
+                    <p>How many different <b>{this.state.type}</b> would you like to have translated from <b>{this.state.src} to {this.state.tar}</b></p>
                 </div>
                 <div className="form-inline btn-group">
                     {buttons}

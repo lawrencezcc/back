@@ -4,8 +4,7 @@ import * as consts from '../constants';
 import ReactDOM from 'react-dom';
 import Formsy from 'formsy-react';
 import FRC from 'formsy-react-components';
-import NoPayAlert from './alerts/noPaymentAlert';
-import PubSub from 'pubsub-js';
+import Stripe from './stripe';
 
 const {Input, Select, Textarea} = FRC;
 
@@ -35,29 +34,29 @@ class DocUpload extends React.Component {
 
     constructor(props) {
         super(props);
-        if (localStorage.order) {
-            this.state = {
-                cart: {
-                    items: [],
-                    totalPrice: 0,
-                    postageType: ""
-                },
-                uploadFiles: [],
-                canSubmit: false,
-                paid: true,
-                order: JSON.parse(localStorage.order)
-            }
-        } else {
-            this.state = {
-                paid: false
-            }
+        this.state = {
+            cart: {
+                items: this.props.cart.items,
+                totalPrice: this.props.cart.totalPrice,
+            },
+            uploadFiles: [],
+            canSubmit: false,
+            email: "",
+            orderNumber: "",
+            upData:{},
         }
+
         this.handleFileChange = this.handleFileChange.bind(this);
         this.handleSubmit = this.handleSubmit.bind(this);
         this.enableButton = this.enableButton.bind(this);
         this.disableButton = this.disableButton.bind(this);
         this.uploadItem = this.uploadItem.bind(this);
         this.addressFields = this.addressFields.bind(this);
+        this.emailChange = this.emailChange.bind(this);
+    }
+
+    emailChange(name, value) {
+        this.setState({email: value})
     }
 
     enableButton() {
@@ -70,19 +69,6 @@ class DocUpload extends React.Component {
         this.setState({
             canSubmit: false
         });
-    }
-
-    componentDidMount() {
-        PubSub.publishSync("steps", 3);
-        if (localStorage.cart) {
-            this.setState({
-                cart: {
-                    items: JSON.parse(localStorage.cart).items,
-                    totalPrice: parseInt(JSON.parse(localStorage.cart).totalPrice),
-                    postageType: JSON.parse(localStorage.cart).postageType
-                }
-            });
-        }
     }
 
     handleFileChange(item, event) {
@@ -122,27 +108,33 @@ class DocUpload extends React.Component {
             }
             count += 1;
         });
-        upData.append("orderID", this.state.order);
-        upData.append("postageType", this.state.cart.postageType);
+        upData.append("postageType", this.props.cart.postageType);
         upData.append("fullName", formData['full-name'].value);
         upData.append("mobile", formData['mobile'].value);
         upData.append("email", formData['email'].value);
-        if (this.state.cart.postageType!=="No Hard Copy"){
+        upData.append("cart",JSON.stringify(this.props.cart.items));
+        upData.append("digitalcopydate",this.props.cart.items[0].date);
+        if (this.props.cart.postageType !== "No Hard Copy") {
             upData.append("address1", formData['street-address'].value);
             upData.append("address2", formData['street-address2'].value);
             upData.append("suburb", formData['suburb'].value);
             upData.append("state", formData['state'].value);
             upData.append("postcode", formData['postcode'].value);
+            upData.append("hardcopydate",this.props.cart.hardCopyDate);
         }
         upData.append("comment", formData['comment'].value);
-        upData.append("totalprice", this.state.cart.totalPrice);
-
+        upData.append("totalprice", this.props.cart.totalPrice);
+        this.setState({
+            upData:upData
+        })
         axios.post(consts.API_URL + '/upload', upData)
             .then((response) => {
-                alert("uploaded");
-                localStorage.clear();
-                console.log(response.data);
-                PubSub.publish("upload", "remove to cart");
+                console.log(JSON.stringify(response.data))
+                this.setState({
+                    orderNumber:response.data.Ordernumber
+                }, () => {
+                    console.log(this.state);
+                })
 
             })
             .catch((err) => {
@@ -151,14 +143,16 @@ class DocUpload extends React.Component {
     }
 
     uploadItem(item, index) {
-        const nth=["first","second","third","fourth","fifth"]
+        const nth = ["first", "second", "third", "fourth", "fifth"]
         let container = [];
         for (var i = 0; i < item.quantity; i++) {
-            container.push(<div><label key={"label-" + index + "-" + i} htmlFor={"item-" + index + "-" + i}>Upload ALL pages for {nth[i]} {item.doc} </label>
+            container.push(<div key={"div-" + index + "-" + i}><label key={"label-" + index + "-" + i}
+                                                                      htmlFor={"item-" + index + "-" + i}>Upload ALL
+                pages for {nth[i]} {item.doc} </label>
                 <input className="file-input btn btn-info form-control" type="file"
-                                  id={"item-" + index + "-" + i}
-                                  name='doc[]' multiple key={"item-" + index + "-" + i}
-                                  onChange={(event) => this.handleFileChange(item, event)}
+                       id={"item-" + index + "-" + i}
+                       name='doc[]' multiple key={"item-" + index + "-" + i}
+                       onChange={(event) => this.handleFileChange(item, event)}
                 /></div>
             );
         }
@@ -178,10 +172,10 @@ class DocUpload extends React.Component {
         );
     }
 
-    addressFields(){
-        if (this.state.cart.postageType==="No Hard Copy"){
+    addressFields() {
+        if (this.props.cart.postageType === "No Hard Copy") {
             return (<div></div>);
-        }else{
+        } else {
             let statesOptions = [
                 {value: '', label: 'Please select...'},
                 {value: 'act', label: 'Australian Capital Territory'},
@@ -197,21 +191,21 @@ class DocUpload extends React.Component {
             return (
                 <div>
                     <Input type="text" ref="street-address" name="street-address"
-                           label="Street address" required placeholder="Street Address"
+                           label="Street address" required placeholder="Street Address" value=""
                     />
                     <Input type="text" ref="street-address2" name="street-address2"
-                           label="Address line2" placeholder="Street Address Line2 (if required)"
+                           label="Address line2" placeholder="Street Address Line2 (if required)" value=""
                     />
                     <Input type="text" ref="suburb" name="suburb"
-                           label="Suburb" placeholder="Suburb" required
+                           label="Suburb" placeholder="Suburb" required value=""
                     />
 
-                    <Select name="state" ref="state" label="State/Territory" required
+                    <Select name="state" ref="state" label="State/Territory" required value=""
                             options={singleSelectOptions}/>
 
                     <Input type="text" ref="postcode" name="postcode"
                            label="Postcode" placeholder="Postcode" required
-                           validations="isLength:4"
+                           validations="isLength:4" value=""
                            validationError="Four digital number"
                     />
                 </div>
@@ -220,55 +214,45 @@ class DocUpload extends React.Component {
     }
 
     render() {
-
-
-        if (this.state.paid) {
-            return (
-                <div className="jumbotron text-center">
-                    <h1>Upload your documents</h1>
-                    <MyForm onSubmit={this.handleSubmit} encType="multipart/form-data" method="POST"
-                            ref="myForm" id="myForm" name="myForm" onInvalid={this.disableButton}
-                            onValid={this.enableButton}
-                    >
-                        {this.uploadInput()}
-                        <div className="form-group">
-                            <Input type="text" validations="isWords"
-                                   validationError="Alphabets only" ref="full-name" name="full-name"
-                                   required placeholder="Full name."
-                                   label="Full name"
-                            />
-                            <Input type="text" ref="mobile" name="mobile"
-                                   label="Mobile Number" placeholder="Mobile Number"
-                            />
-                            <Input type="text" ref="email" name="email" validations="isEmail"
-                                   validationError="This is not a valid email" required
-                                   label="Email" placeholder="Email"
-                            />
-                            <Input type="text" ref="email-check" name="email-check"
-                                   validations="equalsField:email" validationError="Email not match"
-                                   label="Confirm Email" placeholder="Confirm Email"
-                            />
-                            {this.addressFields()}
-                            <Textarea ref="comment" name="comment" rows={2} placeholder="Comments for these documents
+        return (
+            <div className="jumbotron text-center">
+                <h1>Upload your documents</h1>
+                <MyForm onSubmit={this.handleSubmit} encType="multipart/form-data" method="POST"
+                        ref="myForm" id="myForm" name="myForm" onInvalid={this.disableButton}
+                        onValid={this.enableButton}
+                >
+                    {this.uploadInput()}
+                    <div className="form-group">
+                        <Input type="text" validations="isWords"
+                               validationError="Alphabets only" ref="full-name" name="full-name"
+                               required placeholder="Full name." value=""
+                               label="Full name"
+                        />
+                        <Input type="text" ref="mobile" name="mobile"
+                               label="Mobile Number" placeholder="Mobile Number" value=""
+                        />
+                        <Input type="text" ref="email" name="email" validations="isEmail"
+                               validationError="This is not a valid email" required value=""
+                               label="Email" placeholder="Email" onChange={this.emailChange}
+                        />
+                        <Input type="text" ref="email-check" name="email-check"
+                               validations="equalsField:email" validationError="Email not match"
+                               label="Confirm Email" placeholder="Confirm Email" required value=""
+                        />
+                        {this.addressFields()}
+                        <Textarea ref="comment" name="comment" rows={2} placeholder="Comments for these documents
                             .e.g where are you going to use driver's licence" label="Other comment for the services"
-                            />
-                        </div>
-
-                        <div className="form-group">
-                            <input type="submit" className="btn btn-success form-control" value="Upload"
-                                   disabled={!this.state.canSubmit}/>
-                        </div>
-
-                    </MyForm>
-                </div>
-            )
-        } else {
-            return (
-                <div>
-                    <NoPayAlert show={true}/>
-                </div>
-            )
-        }
+                                  value=""
+                        />
+                    </div>
+                    <div className="btn-group">
+                        <Stripe cartData={this.props.cart} submit={this.handleSubmit} update={this.props.update}
+                                disabled={!this.state.canSubmit} email={this.state.email}
+                                orderNumber={this.state.orderNumber} updata={this.state.upData}/>
+                    </div>
+                </MyForm>
+            </div>
+        )
     }
 
 }
